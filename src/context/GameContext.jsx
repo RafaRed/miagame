@@ -607,20 +607,7 @@ function gameReducer(state, action) {
             currentInventory = addToStack(currentInventory, recipe.res, 1);
             return { ...state, inventory: currentInventory };
 
-        case 'USE_ITEM':
-            const uItem = action.payload.item;
-            let uPlayer = { ...state.player };
-            if (uItem.effect) {
-                if (uItem.effect.hp) uPlayer.hp = Math.min(uPlayer.maxHp, uPlayer.hp + uItem.effect.hp);
-                if (uItem.effect.hunger) uPlayer.hunger = Math.min(uPlayer.maxHunger, uPlayer.hunger + uItem.effect.hunger);
-            }
 
-            return {
-                ...state,
-                inventory: removeFromStack(state.inventory, action.payload.index, 1),
-                player: uPlayer,
-                status: { ...state.status, combatLog: [...(state.status.combatLog || []), `Usou ${uItem.name}.`] }
-            };
 
         case 'REFUEL_OUTPOST': {
             const { depth, fuelType } = action.payload;
@@ -705,6 +692,53 @@ function gameReducer(state, action) {
                     [slot]: eItem
                 },
                 status: { ...state.status, logs: [`Equipou ${eItem.name}.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+
+
+
+        case 'USE_ITEM':
+            const { item: uItem, index: uIdx } = action.payload;
+            let uInv = [...state.inventory];
+            let uPlayer = { ...state.player };
+            let uStatus = { ...state.status };
+            let uLogs = uStatus.logs || [];
+
+            if (uItem.type === 'consumable' && uItem.effect) {
+                uInv = removeFromStack(uInv, uIdx, 1);
+
+                if (uItem.effect.hp) uPlayer.hp = Math.min(uPlayer.maxHp, uPlayer.hp + uItem.effect.hp);
+                if (uItem.effect.hunger) uPlayer.hunger = Math.min(uPlayer.maxHunger, uPlayer.hunger + uItem.effect.hunger);
+                if (uItem.effect.revive) uLogs = ["Você sente uma energia pulsante... (Auto-Revive)"];
+
+                uLogs = [`Usou ${uItem.name}.`, ...uLogs];
+            }
+
+            // Special Effects (useEffect)
+            if (uItem.useEffect === 'TIME_REVERT') {
+                uPlayer.depth = Math.max(0, uPlayer.depth - 100);
+                uLogs = ["O tempo retrocede... Você voltou 100m.", ...uLogs];
+
+                // Break Chance 50%
+                if (Math.random() > 0.5) {
+                    uInv = removeFromStack(uInv, uIdx, 1);
+                    uLogs = ["A Ampulheta se estilhaçou após o uso!", ...uLogs];
+                }
+            }
+
+            if (uItem.useEffect === 'SCAN_EVENT') {
+                const scanDepth = uPlayer.depth + (Math.random() * 500);
+                const evt = generateEvent(scanDepth);
+                const dist = Math.floor(scanDepth - uPlayer.depth);
+                uLogs = [`Bússola aponta: [${evt.type === 'monster' ? 'PERIGO' : 'CURIOSIDADE'}] a ${dist}m.`, ...uLogs];
+                // Consumable compass? Logic says it is consumable in constants.
+                uInv = removeFromStack(uInv, uIdx, 1);
+            }
+
+            return {
+                ...state,
+                inventory: uInv,
+                player: uPlayer,
+                status: { ...uStatus, logs: uLogs.slice(0, 50) }
             };
 
         case 'COMBAT_START':

@@ -64,7 +64,7 @@ export const ITEMS = [
     // Grade 1 (Legendary - Game Changers)
     { id: 'white_whistle', name: 'Apito Branco', type: 'relic', price: 10000, icon: 'bone', color: 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]', desc: "Símbolo máximo de status.", rarity: 1 },
     { id: 'abyss_map', name: 'Mapa do Neto', type: 'artifact', price: 8000, effect: { scout: true }, icon: 'map', color: 'text-yellow-200', desc: "Revela segredos.", rarity: 1 },
-    { id: 'time_glass', name: 'Ampulheta do Tempo', type: 'artifact', price: 12000, effect: { hungerRate: 0.5 }, icon: 'hourglass', color: 'text-amber-500', desc: "Congela o tempo metabólico. Fome cai 50% mais devagar.", rarity: 1 },
+    { id: 'time_glass', name: 'Ampulheta do Tempo', type: 'consumable', price: 12000, useEffect: 'TIME_REVERT', icon: 'hourglass', color: 'text-amber-500', desc: "Volta 100m. Pode quebrar.", rarity: 1 },
     { id: 'soul_stone', name: 'Pedra da Alma', type: 'consumable', price: 5000, effect: { revive: true }, icon: 'heart', color: 'text-rose-400', desc: "Te traz de volta à vida (Automático). Consome ao usar.", rarity: 1 },
     { id: 'curse_warding_box', name: 'Caixa Anti-Maldição', type: 'artifact', price: 15000, effect: { curseImmunity: true }, icon: 'box', color: 'text-stone-200', desc: "Imunidade à Maldição (Ativo se carregado).", rarity: 1 },
 
@@ -74,7 +74,7 @@ export const ITEMS = [
     { id: 'blaze_reap', name: 'Blaze Reap', type: 'equip', slot: 'weapon', price: 5000, effect: { atk: 80 }, icon: 'gavel', color: 'text-orange-500', desc: "Explosiva. +80 Atk." },
     { id: 'reg_arm', name: 'Braço Mecânico', type: 'equip', slot: 'weapon', price: 99999, effect: { atk: 500 }, icon: 'zap', color: 'text-yellow-500', desc: "Arma suprema." },
 
-    { id: 'star_compass', name: 'Bússola Estelar', type: 'equip', slot: 'charm', price: 1000, effect: { speed: 1.5 }, icon: 'compass', color: 'text-blue-400', desc: "Navegação rápida." },
+    { id: 'star_compass', name: 'Bússola Estelar', type: 'consumable', price: 1000, useEffect: 'SCAN_EVENT', icon: 'compass', color: 'text-blue-400', desc: "Revela eventos próximos.", rarity: 2 },
     { id: 'thousand_men_wedge', name: 'Cunha de Mil Homens', type: 'equip', slot: 'charm', price: 2500, effect: { str: 5 }, icon: 'triangle', color: 'text-red-500', desc: "+5 Força." },
 
     // --- APPRAISAL BASE ---
