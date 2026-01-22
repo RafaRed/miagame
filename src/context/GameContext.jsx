@@ -157,6 +157,40 @@ function gameReducer(state, action) {
                 resources: { ...state.resources, gold: state.resources.gold + action.payload.gold }
             };
 
+        case 'APPRAISE_ITEM':
+            const appIndex = action.payload.index;
+            const appCost = 50; // Fixed cost for now
+            const appInv = [...state.inventory];
+
+            // Remove dirty relic
+            appInv.splice(appIndex, 1);
+
+            // Roll for result
+            const roll = Math.random();
+            let resultId = 'stone'; // Default trash
+            if (roll > 0.98) resultId = 'white_whistle';
+            else if (roll > 0.90) resultId = 'blaze_reap';
+            else if (roll > 0.70) resultId = 'sun_sphere';
+            else if (roll > 0.50) resultId = 'abyss_map';
+            else if (roll > 0.30) resultId = 'relic_shard';
+            else if (roll > 0.10) resultId = 'star_compass_broken';
+
+            // Add new item
+            appInv.push(resultId);
+
+            // Find item def for logging
+            // Warning: ITEMS import might be needed if not available in scope, 
+            // but reducer is usually pure. We pass item name in payload normally or lookup here if ITEMS global.
+            // Assuming we just log generic success to avoid dependency issues in this snippet context or rely on UI to log.
+            // Actually let's use a generic message in log for now.
+
+            return {
+                ...state,
+                resources: { ...state.resources, gold: state.resources.gold - appCost },
+                inventory: appInv,
+                status: { ...state.status, logs: [`Avaliação completa! Item identificado.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+
         case 'CRAFT_ITEM':
             const recipe = action.payload.recipe;
             // Check resources (simplified validation, caller should check too)
@@ -193,6 +227,28 @@ function gameReducer(state, action) {
                 status: { ...state.status, combatLog: [...(state.status.combatLog || []), `Usou ${uItem.name}.`] }
             };
 
+        case 'EQUIP_ITEM':
+            const eItem = action.payload.item;
+            const eInv = [...state.inventory];
+            eInv.splice(action.payload.index, 1);
+
+            // Unequip current if exists
+            const slot = eItem.slot || 'weapon'; // default to weapon if missing
+            const currentEquip = state.equipment[slot];
+            if (currentEquip) {
+                eInv.push(currentEquip.id);
+            }
+
+            return {
+                ...state,
+                inventory: eInv,
+                equipment: {
+                    ...state.equipment,
+                    [slot]: eItem
+                },
+                status: { ...state.status, logs: [`Equipou ${eItem.name}.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+
         case 'COMBAT_START':
             return {
                 ...state,
@@ -213,9 +269,13 @@ function gameReducer(state, action) {
             let monsterHp = monster.hp;
 
             if (action.payload.action === 'ATTACK') {
-                pDmg = Math.floor(Math.random() * 20) + 10;
+                // Calculate Player Damage with Equipment
+                const weaponDmg = state.equipment.weapon ? (state.equipment.weapon.power || 0) : 0;
+                // Base damage 5-15 + Weapon Power
+                pDmg = Math.floor(Math.random() * 10) + 5 + weaponDmg;
+
                 monsterHp -= pDmg;
-                log.push(`Você causou ${pDmg} de dano.`);
+                log.push(`Você causou ${pDmg} de dano${weaponDmg > 0 ? ` (+${weaponDmg} eqp)` : ''}.`);
             }
 
             if (monsterHp > 0) {
@@ -273,6 +333,9 @@ function gameReducer(state, action) {
                 status: {
                     ...state.status,
                     isDead: false,
+                    inCombat: false, // Force exit combat
+                    currentMonster: null,
+                    currentEvent: null,
                     logs: ["Você acordou na superfície, ferido mas vivo.", ...state.status.logs]
                 }
             };

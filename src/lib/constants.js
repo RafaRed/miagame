@@ -15,9 +15,15 @@ export const ITEMS = [
     { id: 'relic_shard', name: 'Fragmento de Relíquia', type: 'loot', price: 100, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
     { id: 'sun_sphere', name: 'Esfera Solar', type: 'loot', price: 150, icon: 'sun', color: 'text-amber-300', desc: "Brilha eternamente." },
 
+    // Appraisal Items
+    { id: 'dirty_relic', name: 'Relíquia Suja', type: 'relic_raw', price: 50, icon: 'box', color: 'text-stone-400', desc: "Precisa ser avaliada para revelar seu valor.", rarity: 1 },
+    { id: 'white_whistle', name: 'Apito Branco', type: 'relic', price: 5000, icon: 'bone', color: 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]', desc: "Símbolo lendário. Vale uma fortuna." },
+    { id: 'abyss_map', name: 'Mapa Antigo', type: 'relic', price: 800, icon: 'compass', color: 'text-emerald-300', desc: "Um mapa de uma camada esquecida." },
+    { id: 'star_compass_broken', name: 'Bússola Quebrada', type: 'relic', price: 200, icon: 'compass', color: 'text-slate-500', desc: "Ainda aponta para o fundo..." },
+
     // Equip
     { id: 'pickaxe', name: 'Picareta', type: 'equip', slot: 'weapon', price: 500, effect: { atk: 20 }, icon: 'hammer', color: 'text-slate-300', desc: "Arma improvisada. +20 Ataque." },
-    { id: 'star_compass', name: 'Bússola', type: 'equip', slot: 'charm', price: 1000, effect: { speed: 1.5 }, icon: 'compass', color: 'text-blue-400', desc: "Mostra o caminho. Desça mais rápido." },
+    { id: 'star_compass', name: 'Bússola Estelar', type: 'equip', slot: 'charm', price: 1000, effect: { speed: 1.5 }, icon: 'compass', color: 'text-blue-400', desc: "Mostra o caminho. Desça mais rápido." },
     { id: 'blaze_reap', name: 'Blaze Reap', type: 'equip', slot: 'weapon', price: 2500, effect: { atk: 80 }, icon: 'gavel', color: 'text-orange-500', desc: "Arma lendária explosiva. +80 Ataque." }
 ];
 

@@ -9,31 +9,28 @@ export function useGameLoop() {
         const loop = setInterval(() => {
             // Tycoon Logic
             const machines = state.machines;
-            const multiplier = 1 + (machines.generator * 0.2);
+            const multiplier = 1 + (machines.generator || 0) * 0.2;
 
             let goldGain = 0;
-            let inventoryChanges = []; // We might need a dispatch for inventory too
 
             // Excavator
             if (machines.excavator > 0) {
+                // Base 5 gold per excavator per tick
                 goldGain += Math.floor(machines.excavator * 5 * multiplier);
-                // Chance for Abyss Dust
-                if (Math.random() < 0.2 * machines.excavator) {
-                    // Logic for adding item would be complex in a pure loop
-                    // Simplified: We'll handle passive item gains via specific actions later
-                    // or add a "ADD_ITEM" action
-                }
+            }
+
+            // Bank Interest (1% of current gold per Bank level)
+            if (machines.bank > 0 && state.resources.gold > 0) {
+                const interestWrapper = Math.floor(state.resources.gold * (0.01 * machines.bank));
+                goldGain += Math.min(interestWrapper, 1000); // Cap interest to prevent runaway
             }
 
             // Dispatch Tick
             if (goldGain > 0) {
-                dispatch({ type: 'ADD_GOLD', payload: goldGain });
+                dispatch({ type: 'TICK_PASSIVE', payload: { gold: goldGain } });
             }
 
-            // Bank Interest
-            // if (machines.bank > 0) ... (logic moved to separate faster loop or handled here)
-
-        }, 10000); // 10s loop
+        }, 5000); // 5s loop for faster feedback
 
         return () => clearInterval(loop);
     }, [state.machines, dispatch]);

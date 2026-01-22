@@ -99,6 +99,14 @@ export default function CraftingPanel({ onClose }) {
                                             <Utensils size={10} /> USAR
                                         </button>
                                     )}
+                                    {item.type === 'equip' && (
+                                        <button
+                                            onClick={() => dispatch({ type: 'EQUIP_ITEM', payload: { item, index: idx } })}
+                                            className="w-full bg-slate-700 hover:bg-blue-700 text-xs py-1 rounded font-bold transition flex items-center justify-center gap-1"
+                                        >
+                                            <Hammer size={10} /> EQUIPAR
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })}

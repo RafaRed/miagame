@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGameState } from '../../context/GameContext';
 import {
-    ShoppingBag, Pickaxe, Battery, Zap, ArrowUpCircle, Coins, Package,
+    ShoppingBag, Pickaxe, Battery, Zap, ArrowUpCircle, Coins, Package, Eye,
     Cog, Wind, Bone, Hexagon, Cross, Drumstick, Utensils, Box, Shapes, Sun, Hammer, Compass, Gavel
 } from 'lucide-react';
 import { ITEMS } from '../../lib/constants';
@@ -57,6 +57,7 @@ export default function ShopPanel({ onClose }) {
             <div className="flex border-b border-slate-700 bg-black/20">
                 <TabButton active={tab === 'supplies'} onClick={() => setTab('supplies')} icon={ShoppingBag}>Suprimentos</TabButton>
                 <TabButton active={tab === 'upgrades'} onClick={() => setTab('upgrades')} icon={Battery}>Maquinário</TabButton>
+                <TabButton active={tab === 'appraisal'} onClick={() => setTab('appraisal')} icon={SearchLikeIcon}>Avaliar</TabButton>
                 <TabButton active={tab === 'sell'} onClick={() => setTab('sell')} icon={Coins}>Vender</TabButton>
             </div>
 
@@ -122,6 +123,44 @@ export default function ShopPanel({ onClose }) {
                     </div>
                 )}
 
+                {tab === 'appraisal' && (
+                    <div className="space-y-4">
+                        <div className="bg-indigo-900/20 p-4 rounded border border-indigo-500/30 text-center mb-4">
+                            <h3 className="text-indigo-300 font-bold mb-1">Avaliador de Relíquias</h3>
+                            <p className="text-xs text-slate-400">Traga "Relíquias Sujas" para revelar seu verdadeiro valor. Custo: 50 Orth.</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            {state.inventory.map((itemId, idx) => {
+                                const item = ITEMS.find(i => i.id === itemId);
+                                if (item?.type !== 'relic_raw') return null;
+
+                                return (
+                                    <div key={idx} className="bg-slate-800 p-3 rounded border border-indigo-900/50 flex flex-col items-center gap-2">
+                                        <div className="w-12 h-12 bg-slate-900 rounded flex items-center justify-center text-slate-500">
+                                            <Package size={24} />
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="font-bold text-sm text-slate-200">{item.name}</p>
+                                            <p className="text-[10px] text-slate-500">Não Identificado</p>
+                                        </div>
+                                        <button
+                                            onClick={() => dispatch({ type: 'APPRAISE_ITEM', payload: { index: idx } })}
+                                            disabled={state.resources.gold < 50}
+                                            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold py-2 rounded"
+                                        >
+                                            AVALIAR (50 O)
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {!state.inventory.some(id => ITEMS.find(i => i.id === id)?.type === 'relic_raw') && (
+                            <p className="text-center text-slate-500 py-10">Você não possui relíquias sujas.</p>
+                        )}
+                    </div>
+                )}
+
                 {tab === 'sell' && (
                     <div className="grid grid-cols-3 gap-2">
                         {state.inventory.map((itemId, idx) => {
@@ -165,4 +204,5 @@ function TabButton({ active, onClick, icon: Icon, children }) {
     );
 }
 
+const SearchLikeIcon = Eye;
 const StoreIcon = () => <ShoppingBag className="text-relic-gold" />;
