@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
-// Initial State based on the prototype
+// Initial State
 const initialState = {
     player: {
         name: "Explorador",
@@ -12,13 +12,13 @@ const initialState = {
         maxHunger: 100,
         xp: 0,
         level: 1,
-        canAscend: true, // For curse checks
+        canAscend: true,
     },
     resources: {
-        gold: 100, // Orth
-        humanity: 0, // Rare currency from rescuing
+        gold: 100,
+        humanity: 0,
     },
-    inventory: ['ration', 'ration'],
+    inventory: [{ id: 'ration', count: 2 }],
     equipment: {
         weapon: null,
         body: null,
@@ -35,16 +35,40 @@ const initialState = {
     stats: {
         monstersKilled: 0,
         relicsFound: 0,
+        foundRelicIds: [],
     },
     status: {
         inCombat: false,
-        combatId: null, // ID of the monster/encounter
+        combatId: null,
         isDead: false,
         combatLog: [],
+        curseIntensity: 0,
         logs: ["Bem-vindo a Orth. Construa sua reputação e explore o desconhecido."],
     },
-    // Multiplayer data will be handled by a separate hook or merged here?
-    // Keeping it separate for now to avoid reducer bloat.
+};
+
+// Helper for stacking
+const addToStack = (inv, itemId, qty = 1) => {
+    const existingIdx = inv.findIndex(i => i.id === itemId);
+    if (existingIdx > -1) {
+        const newStack = { ...inv[existingIdx], count: inv[existingIdx].count + qty };
+        const newInv = [...inv];
+        newInv[existingIdx] = newStack;
+        return newInv;
+    }
+    return [...inv, { id: itemId, count: qty }];
+};
+
+// Helper for removing
+const removeFromStack = (inv, index, qty = 1) => {
+    const item = inv[index];
+    const newInv = [...inv];
+    if (item.count > qty) {
+        newInv[index] = { ...item, count: item.count - qty };
+    } else {
+        newInv.splice(index, 1);
+    }
+    return newInv;
 };
 
 // Reducer
@@ -111,6 +135,7 @@ function gameReducer(state, action) {
                 status: {
                     ...state.status,
                     isDead: newHp <= 0,
+                    curseIntensity: 100, // Trigger full visual curse
                     logs: newHp < state.player.hp ? newLogs : state.status.logs
                 }
             };
@@ -145,10 +170,11 @@ function gameReducer(state, action) {
         case 'TICK_PASSIVE':
             // Handle passive regeneration or other time-based updates
             // This might be complex, so we pass the calculated deltas
+            const currentCurse = state.status.curseIntensity || 0;
             return {
                 ...state,
                 resources: { ...state.resources, gold: state.resources.gold + (action.payload.gold || 0) },
-                // ... inventory updates if any
+                status: { ...state.status, curseIntensity: Math.max(0, currentCurse - 5) }
             };
 
         case 'ADD_LOG':
@@ -158,10 +184,15 @@ function gameReducer(state, action) {
             };
 
         case 'LOOT_FOUND':
+            const lootItem = action.payload.item;
+            const knownById = state.stats.foundRelicIds || [];
+            if (!knownById.includes(lootItem.id)) knownById.push(lootItem.id);
+
             return {
                 ...state,
-                inventory: [...state.inventory, action.payload.item.id],
-                status: { ...state.status, logs: [`Você encontrou ${action.payload.item.name}.`, ...(state.status.logs || [])].slice(0, 50) }
+                inventory: addToStack(state.inventory, lootItem.id, 1),
+                stats: { ...state.stats, foundRelicIds: knownById },
+                status: { ...state.status, logs: [`Você encontrou ${lootItem.name}.`, ...(state.status.logs || [])].slice(0, 50) }
             };
 
         case 'TRIGGER_EVENT':
@@ -187,15 +218,13 @@ function gameReducer(state, action) {
             return {
                 ...state,
                 resources: { ...state.resources, gold: state.resources.gold - action.payload.cost },
-                inventory: [...state.inventory, action.payload.item.id]
+                inventory: addToStack(state.inventory, action.payload.item.id, 1)
             };
 
         case 'SELL_ITEM':
-            const newInv = [...state.inventory];
-            newInv.splice(action.payload.index, 1);
             return {
                 ...state,
-                inventory: newInv,
+                inventory: removeFromStack(state.inventory, action.payload.index, 1),
                 resources: { ...state.resources, gold: state.resources.gold + action.payload.gold }
             };
 
@@ -236,7 +265,7 @@ function gameReducer(state, action) {
                 msg = "Você se sente mais forte.";
             }
             if (reward.type === 'item') {
-                inventory.push(reward.id);
+                inventory = addToStack(inventory, reward.id, 1);
                 msg = "Item recebido.";
             }
             if (reward.type === 'restore_all') {
@@ -264,78 +293,65 @@ function gameReducer(state, action) {
 
         case 'APPRAISE_ITEM':
             const appIndex = action.payload.index;
-            const appCost = 50; // Fixed cost for now
-            const appInv = [...state.inventory];
+            const appCost = 50;
+            // Remove 1 dirty relic
+            const afterAppraiseInv = removeFromStack(state.inventory, appIndex, 1);
 
-            // Remove dirty relic
-            appInv.splice(appIndex, 1);
-
-            // Roll for result (Weighted Rarity)
+            // Roll for result (simplified copy of logic to avoid massive diff)
             const roll = Math.random();
             let resultId = 'stone';
-
-            // 1% Chance - Special (Aubade)
             if (roll > 0.99) resultId = 'reg_arm';
-            // 4% Chance - Grade 1 (Legendary)
             else if (roll > 0.95) {
                 const legendary = ['white_whistle', 'abyss_map', 'sun_sphere', 'blaze_reap'];
                 resultId = legendary[Math.floor(Math.random() * legendary.length)];
             }
-            // 15% Chance - Grade 2 (Rare)
             else if (roll > 0.80) {
                 const rare = ['thousand_men_wedge', 'life_stone', 'star_compass'];
                 resultId = rare[Math.floor(Math.random() * rare.length)];
             }
-            // 30% Chance - Grade 3 (Uncommon)
             else if (roll > 0.50) {
                 const uncommon = ['star_compass_broken', 'fog_weave', 'relic_fragment'];
                 resultId = uncommon[Math.floor(Math.random() * uncommon.length)];
             }
-            // 50% Chance - Grade 4 (Common/Trash)
             else {
                 const common = ['eternal_torch', 'hollow_vessel', 'stone', 'scrap'];
                 resultId = common[Math.floor(Math.random() * common.length)];
             }
 
-            // Add new item
-            appInv.push(resultId);
-
-            // Find item def for logging
-            // Warning: ITEMS import might be needed if not available in scope, 
-            // but reducer is usually pure. We pass item name in payload normally or lookup here if ITEMS global.
-            // Assuming we just log generic success to avoid dependency issues in this snippet context or rely on UI to log.
-            // Actually let's use a generic message in log for now.
+            // Update Catalog
+            const appKnownById = state.stats.foundRelicIds || [];
+            if (!appKnownById.includes(resultId)) appKnownById.push(resultId);
 
             return {
                 ...state,
                 resources: { ...state.resources, gold: state.resources.gold - appCost },
-                inventory: appInv,
+                inventory: addToStack(afterAppraiseInv, resultId, 1),
+                stats: { ...state.stats, relicsFound: state.stats.relicsFound + 1, foundRelicIds: appKnownById },
                 status: { ...state.status, logs: [`Avaliação completa! Item identificado.`, ...(state.status.logs || [])].slice(0, 50) }
             };
 
         case 'CRAFT_ITEM':
             const recipe = action.payload.recipe;
             // Check resources (simplified validation, caller should check too)
-            let scState = { ...state };
+            let currentInventory = [...state.inventory];
 
             // Consume materials
             Object.entries(recipe.req).forEach(([matId, count]) => {
                 // Find index of material
                 for (let i = 0; i < count; i++) {
-                    const idx = scState.inventory.indexOf(matId);
-                    if (idx > -1) scState.inventory.splice(idx, 1);
+                    const idx = currentInventory.findIndex(item => item.id === matId);
+                    if (idx > -1) {
+                        currentInventory = removeFromStack(currentInventory, idx, 1);
+                    }
                 }
             });
 
             // Add result
-            scState.inventory.push(recipe.res);
-            return scState;
+            currentInventory = addToStack(currentInventory, recipe.res, 1);
+            return { ...state, inventory: currentInventory };
 
         case 'USE_ITEM':
             const uItem = action.payload.item;
-            const uInv = [...state.inventory];
-            uInv.splice(action.payload.index, 1);
-
             let uPlayer = { ...state.player };
             if (uItem.effect) {
                 if (uItem.effect.hp) uPlayer.hp = Math.min(uPlayer.maxHp, uPlayer.hp + uItem.effect.hp);
@@ -344,26 +360,28 @@ function gameReducer(state, action) {
 
             return {
                 ...state,
-                inventory: uInv,
+                inventory: removeFromStack(state.inventory, action.payload.index, 1),
                 player: uPlayer,
                 status: { ...state.status, combatLog: [...(state.status.combatLog || []), `Usou ${uItem.name}.`] }
             };
 
         case 'EQUIP_ITEM':
             const eItem = action.payload.item;
-            const eInv = [...state.inventory];
-            eInv.splice(action.payload.index, 1);
+            // Remove 1 from stack
+            const eInv = removeFromStack(state.inventory, action.payload.index, 1);
 
-            // Unequip current if exists
+            // Unequip current if exists (Add back to inventory)
             const slot = eItem.slot || 'weapon'; // default to weapon if missing
             const currentEquip = state.equipment[slot];
+
+            let finalInv = eInv;
             if (currentEquip) {
-                eInv.push(currentEquip.id);
+                finalInv = addToStack(eInv, currentEquip.id, 1);
             }
 
             return {
                 ...state,
-                inventory: eInv,
+                inventory: finalInv,
                 equipment: {
                     ...state.equipment,
                     [slot]: eItem
@@ -395,18 +413,19 @@ function gameReducer(state, action) {
                 // Weapon Atk + Charm Str or Atk
                 const weapon = state.equipment.weapon;
                 const charm = state.equipment.charm;
+                const baseStat = state.player.baseAtk || 0;
 
                 const weaponAtk = weapon?.effect?.atk || 0;
                 const charmStr = charm?.effect?.str || 0;
                 const charmAtk = charm?.effect?.atk || 0;
 
-                const totalBonus = weaponAtk + charmAtk + (charmStr * 2); // 1 Str = 2 Atk value
+                const totalBonus = weaponAtk + charmAtk + (charmStr * 2) + baseStat; // 1 Str = 2 Atk value
 
                 // Base damage 5-15 + Bonuses
                 pDmg = Math.floor(Math.random() * 10) + 5 + totalBonus;
 
                 monsterHp -= pDmg;
-                log.push(`Você causou ${pDmg} de dano${totalBonus > 0 ? ` (+${totalBonus} eqp)` : ''}.`);
+                log.push(`Você causou ${pDmg} de dano${totalBonus > 0 ? ` (+${totalBonus} bônus)` : ''}.`);
             }
 
             if (monsterHp > 0) {

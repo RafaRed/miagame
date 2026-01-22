@@ -11,13 +11,22 @@ const IconMap = {
     'hammer': Hammer, 'compass': Compass, 'gavel': Gavel
 };
 
-// Log component
-const GameLog = () => {
+const RecentLogs = () => {
     const { state } = useGameState();
+    const logs = state.status.logs || [];
+    const recentLogs = logs.slice(0, 4);
+
+    const getLogColor = (text) => {
+        if (text.includes('Item:') || text.includes('encontrou')) return 'border-cyan-400 text-cyan-100 bg-cyan-950/40';
+        if (text.includes('Inimigo:') || text.includes('dano') || text.includes('bloqueia')) return 'border-red-500 text-red-100 bg-red-950/40';
+        if (text.includes('Maldição')) return 'border-purple-500 text-purple-100 bg-purple-950/40';
+        return 'border-slate-500/50 text-slate-200 bg-black/40';
+    };
+
     return (
-        <div className="flex-1 p-4 pt-24 overflow-y-auto space-y-2 z-10 flex flex-col-reverse scroll-smooth mask-image-b pb-24 scrollbar-hide">
-            {state.status.logs?.map((log, i) => (
-                <div key={i} className="p-3 rounded bg-abyss-900/90 border-l-2 border-emerald-500 text-slate-300 text-xs shadow-lg backdrop-blur-md animate-fade-in">
+        <div className="absolute bottom-24 left-4 z-20 w-3/4 md:w-1/3 pointer-events-none flex flex-col gap-1.5">
+            {recentLogs.map((log, i) => (
+                <div key={i} className={`text-[10px] sm:text-xs font-mono font-bold tracking-wide px-3 py-1.5 rounded-sm border-l-4 backdrop-blur-[2px] shadow-sm animate-fade-in-left ${getLogColor(log)} transition-all`}>
                     {log}
                 </div>
             ))}
@@ -43,11 +52,38 @@ export default function VisualPanel() {
         }
     };
 
+    const curseIntensity = state.status.curseIntensity || 0;
+    const blurAmount = (curseIntensity / 100) * 8; // Max 8px blur
+    const hueRotate = (curseIntensity / 100) * 45; // Max 45deg rotation
+    const saturate = 1 - (curseIntensity / 200); // Reduce saturation slightly
+
     return (
-        <div
-            className="relative flex-1 flex flex-col h-full overflow-hidden bg-cover bg-center transition-all duration-1000"
-            style={{ backgroundImage: `url(${currentLayer.img})` }}
-        >
+        <div className="relative flex-1 flex flex-col h-full overflow-hidden bg-black">
+            {/* Background Layer with Effects */}
+            <div
+                className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
+                style={{
+                    backgroundImage: `url(${currentLayer.img})`,
+                    filter: `blur(${blurAmount}px) hue-rotate(${hueRotate}deg) saturate(${saturate})`
+                }}
+            />
+
+            {/* Curse Vignette Overlay */}
+            {curseIntensity > 0 && (
+                <div
+                    className="absolute inset-0 pointer-events-none z-0 transition-opacity duration-1000"
+                    style={{
+                        background: `radial-gradient(circle, transparent 40%, rgba(128, 0, 128, ${curseIntensity / 150}))`,
+                        opacity: curseIntensity / 100
+                    }}
+                ></div>
+            )}
+
+            {/* Visual Effects Layer (Gradient) */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-0"></div>
+
+            {/* HUD Elements (Safe from blur) */}
+
             {/* Depth HUD */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none">
                 <div className="text-4xl font-bold font-mono text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
@@ -58,14 +94,14 @@ export default function VisualPanel() {
                 </div>
             </div>
 
-            {/* Game Log */}
-            <GameLog />
+            {/* Game Log (HUD) */}
+            <RecentLogs />
 
             {/* Inventory Strip (Hotbar) */}
-            <div className="absolute bottom-0 w-full z-20 bg-abyss-900/95 border-t border-slate-800 p-2 h-20 flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.8)] backdrop-blur px-4">
+            <div className="absolute bottom-0 w-full z-20 bg-abyss-900/95 border-t border-slate-800 p-2 h-20 flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.8)] backdrop-blur px-4 pointer-events-auto">
                 <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-1">Mochila (Clique para usar)</span>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    {state.inventory.map((itemEntry, idx) => { // Fixed mapping variable name
+                    {state.inventory.map((itemEntry, idx) => {
                         const itemId = typeof itemEntry === 'string' ? itemEntry : itemEntry.id;
                         const itemDef = ITEMS.find(i => i.id === itemId);
                         if (!itemDef) return null;
@@ -86,15 +122,16 @@ export default function VisualPanel() {
                                 <Icon size={20} />
                                 {itemDef.type === 'consumable' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div>}
                                 {itemDef.type === 'equip' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div>}
-                                {(typeof item === 'object' && item.count > 1) && <span className="absolute bottom-0 right-0 text-[10px] bg-black/80 px-1 rounded-tl text-white font-mono">{item.count}</span>}
+                                {((typeof itemEntry === 'object' && itemEntry.count > 1) || false) && (
+                                    <span className="absolute bottom-0 right-0 text-[10px] bg-black/80 px-1 rounded-tl text-white font-mono font-bold">
+                                        {itemEntry.count}
+                                    </span>
+                                )}
                             </button>
                         );
                     })}
                 </div>
             </div>
-
-            {/* Visual Effects Layer */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
         </div>
     );
 }

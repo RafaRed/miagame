@@ -20,7 +20,8 @@ export default function CraftingPanel({ onClose }) {
         const counts = {};
         state.inventory.forEach(item => {
             const id = typeof item === 'string' ? item : item.id;
-            counts[id] = (counts[id] || 0) + 1;
+            const qty = typeof item === 'string' ? 1 : (item.count || 1);
+            counts[id] = (counts[id] || 0) + qty;
         });
         return Object.entries(recipe.req).every(([id, count]) => (counts[id] || 0) >= count);
     };
@@ -71,6 +72,7 @@ export default function CraftingPanel({ onClose }) {
                     <div className="grid grid-cols-2 gap-3">
                         {state.inventory.map((itemEntry, idx) => {
                             const itemId = typeof itemEntry === 'string' ? itemEntry : itemEntry.id;
+                            const count = typeof itemEntry === 'string' ? 1 : (itemEntry.count || 1);
                             const item = ITEMS.find(i => i.id === itemId);
                             if (!item) return null;
                             const Icon = IconMap[item.icon] || Box;
@@ -78,17 +80,17 @@ export default function CraftingPanel({ onClose }) {
                             return (
                                 <div key={idx} className="bg-slate-800 p-3 rounded border border-slate-700 flex flex-col gap-2 group relative">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded bg-slate-900 flex items-center justify-center shrink-0 ${item.color}`}>
-                                            {/** Simple icon mapping inline or if I had the map here... I'll just use ? for now since we didn't export the map, 
-                                               * actually, to do this consistently I should have exported the map from a shared file or redefine it. 
-                                               * I'll redefine a small subset or just use the Lucide imports directly if I import them.
-                                               * Let's import the same icons here. 
-                                               */}
+                                        <div className={`w-8 h-8 rounded bg-slate-900 flex items-center justify-center shrink-0 ${item.color} relative`}>
                                             <Icon size={18} />
+                                            {count > 1 && (
+                                                <span className="absolute -bottom-1 -right-1 bg-black text-white text-[9px] font-bold px-1 rounded border border-slate-600">
+                                                    x{count}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="overflow-hidden">
                                             <p className="font-bold text-sm whitespace-normal leading-tight" title={item.name}>{item.name}</p>
-                                            <p className="text-[10px] text-slate-400 whitespace-normal mt-0.5 leading-relaxed">{item.desc} {item.effect ? `(${JSON.stringify(item.effect)})` : ''}</p>
+                                            <p className="text-[10px] text-slate-400 whitespace-normal mt-0.5 leading-relaxed">{item.desc} {item.effect ? `(${JSON.stringify(item.effect).replace(/["{}]/g, '').replace(/:/g, ': ')})` : ''}</p>
                                         </div>
                                     </div>
                                     {item.type === 'consumable' && (
@@ -106,6 +108,11 @@ export default function CraftingPanel({ onClose }) {
                                         >
                                             <Hammer size={10} /> EQUIPAR
                                         </button>
+                                    )}
+                                    {item.type === 'relic_raw' && (
+                                        <div className="w-full bg-slate-800 text-slate-500 text-[10px] text-center border-t border-slate-700 pt-1 mt-1">
+                                            Avalie na Loja
+                                        </div>
                                     )}
                                 </div>
                             );

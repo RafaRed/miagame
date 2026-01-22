@@ -1,4 +1,4 @@
-import { MONSTERS, ITEMS } from '../lib/constants';
+import { MONSTERS, ITEMS, NPCS } from '../lib/constants'; // Added NPCS import
 
 // Probabilities based on depth
 export function generateEvent(depth) {
@@ -11,7 +11,7 @@ export function generateEvent(depth) {
         return {
             type: 'COMBAT',
             data: monster,
-            text: `Um ${monster.name} apareceu das sombras!`
+            text: `Inimigo: ${monster.name}`
         };
     }
 
@@ -28,7 +28,7 @@ export function generateEvent(depth) {
         return {
             type: 'LOOT',
             data: item,
-            text: `Você encontrou ${item.name} escondido.`
+            text: `Item: ${item.name}` // Direct text
         };
     }
 
@@ -40,7 +40,7 @@ export function generateEvent(depth) {
             return {
                 type: 'INTERACTION',
                 data: npc,
-                text: npc.dialogue // Initial flavor text
+                text: npc.name // Just name for context
             };
         }
     }
@@ -49,22 +49,11 @@ export function generateEvent(depth) {
     if (chance < 0.55 && depth > 2000) {
         return {
             type: 'RELIC',
-            data: { name: 'Artefato Desconhecido' },
-            text: "Um brilho estranho emite calor..."
+            data: { ...ITEMS.find(i => i.id === 'dirty_relic'), name: 'Relíquia Suja' }, // Give actual item
+            text: "Item Raro: Relíquia Suja"
         };
     }
 
-    // 45% Nothing, just atmosphere
-    const atmos = [
-        "O silêncio é ensurdecedor.",
-        "Você ouve gritos distantes.",
-        "A pressão aumenta.",
-        "Sua lanterna pisca.",
-        "Você sente que está sendo observado.",
-        "O cheiro de ozônio preenche o ar."
-    ];
-    return {
-        type: 'FLAVOR',
-        text: atmos[Math.floor(Math.random() * atmos.length)]
-    };
+    // Rest is silence (No event)
+    return { type: 'NONE' };
 }

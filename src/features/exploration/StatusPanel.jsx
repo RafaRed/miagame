@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useGameState } from '../../context/GameContext';
-import { ArrowDown, ArrowUp, Hammer, Store } from 'lucide-react';
+import { ArrowDown, ArrowUp, Hammer, Store, Book } from 'lucide-react';
 import ShopPanel from '../tycoon/ShopPanel';
 import CraftingPanel from '../inventory/CraftingPanel';
+import RelicBookModal from '../encyclopedia/RelicBookModal';
 import { generateEvent } from '../../utils/eventSystem';
 
 const ProgressBar = ({ value, max, color, label, icon }) => {
@@ -30,6 +31,7 @@ export default function StatusPanel() {
 
     const [showShop, setShowShop] = useState(false);
     const [showCrafting, setShowCrafting] = useState(false);
+    const [showBook, setShowBook] = useState(false);
 
     const handleStartEdit = () => {
         setTempName(state.player.name);
@@ -51,21 +53,28 @@ export default function StatusPanel() {
         }
     };
 
+    // Whistle Logic
+    const getWhistleRank = (depth) => {
+        if (depth < 1350) return { name: "Apito Vermelho", color: "bg-red-500", shadow: "shadow-red-500/50" };
+        if (depth < 2600) return { name: "Apito Azul", color: "bg-blue-600", shadow: "shadow-blue-600/50" };
+        if (depth < 7000) return { name: "Apito da Lua", color: "bg-purple-600", shadow: "shadow-purple-600/50" };
+        if (depth < 12000) return { name: "Apito Preto", color: "bg-slate-900", shadow: "shadow-black/50" };
+        return { name: "Apito Branco", color: "bg-white", shadow: "shadow-white/50" };
+    };
+
+    const whistle = getWhistleRank(state.player.maxDepth); // Rank based on deepest achievement
+
     const handleDescend = () => {
-        dispatch({ type: 'DESCEND', payload: { amount: 10, cost: 2 } });
+        dispatch({ type: 'DESCEND', payload: { amount: 25, cost: 2 } }); // Faster descent
 
         // Trigger Event
-        const event = generateEvent(state.player.depth + 10);
+        const event = generateEvent(state.player.depth + 25);
         if (event.type === 'LOOT') {
             dispatch({ type: 'LOOT_FOUND', payload: { item: event.data } });
-            // dispatch({ type: 'ADD_LOG', payload: `Você encontrou ${event.data.name}!` }); // Reducer already handles this
         } else if (event.type === 'FLAVOR') {
             dispatch({ type: 'ADD_LOG', payload: event.text });
-        } else if (event.type === 'COMBAT') {
+        } else if (event.type === 'COMBAT' || event.type === 'INTERACTION' || event.type === 'RELIC') {
             dispatch({ type: 'TRIGGER_EVENT', payload: event });
-        } else if (event.type === 'RELIC') {
-            dispatch({ type: 'LOOT_FOUND', payload: { item: event.data } }); // Treat relic as regular loot for now to skip modal
-            // dispatch({ type: 'TRIGGER_EVENT', payload: event });
         }
     };
 
@@ -73,18 +82,20 @@ export default function StatusPanel() {
         if (state.player.depth <= 0) return;
 
         // Curse Logic
-        const damage = Math.floor(Math.random() * 5) + 5; // Base damage
+        const damage = Math.floor(Math.random() * 8) + 5;
+        dispatch({ type: 'ASCEND', payload: { amount: 50, cost: 5 } }); // Climbing costs more hunger
         dispatch({ type: 'TAKE_DAMAGE', payload: damage });
         dispatch({ type: 'ADD_LOG', payload: `A Maldição do Abismo te atinge! -${damage} HP` });
-
-        dispatch({ type: 'ASCEND', payload: { amount: 50 } });
     };
+
     return (
         <div className="flex flex-col h-full">
             {/* Player Info */}
-            <div className="flex items-center gap-3 mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700 relative group transition hover:border-slate-500">
-                <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center shadow-[0_0_10px_red]">
-                    <span className="text-white text-xs font-bold">R</span>
+            <div className={`flex items-center gap-3 mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700 relative group transition hover:border-slate-500`}>
+                <div className={`w-10 h-10 rounded-full ${whistle.color} flex items-center justify-center shadow-[0_0_15px_currentColor] ${whistle.shadow} transition-all duration-500 border border-white/20`}>
+                    <span className={`text-[10px] font-bold uppercase ${whistle.name === 'Apito Branco' ? 'text-slate-900' : 'text-white'}`}>
+                        {whistle.name.split(' ')[1][0]}
+                    </span>
                 </div>
                 <div className="flex-1 overflow-hidden">
                     {isEditingName ? (
@@ -107,7 +118,7 @@ export default function StatusPanel() {
                             {state.player.name}
                         </h2>
                     )}
-                    <span className="text-[10px] text-slate-400 uppercase tracking-widest block">Apito Vermelho</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest block">{whistle.name}</span>
                 </div>
             </div>
 
@@ -144,16 +155,16 @@ export default function StatusPanel() {
             </div>
 
             {/* Actions */}
-            <div className="mt-auto grid grid-cols-2 gap-2">
+            <div className="mt-auto grid grid-cols-4 gap-2">
                 <button
                     onClick={handleDescend}
-                    className="col-span-2 bg-gradient-to-r from-blue-800 to-indigo-900 hover:from-blue-700 hover:to-indigo-800 p-3 rounded-lg font-bold shadow-lg border-b-4 border-indigo-950 active:border-b-0 active:translate-y-1 transition group relative overflow-hidden flex items-center justify-center gap-2 text-white"
+                    className="col-span-4 bg-gradient-to-r from-blue-800 to-indigo-900 hover:from-blue-700 hover:to-indigo-800 p-3 rounded-lg font-bold shadow-lg border-b-4 border-indigo-950 active:border-b-0 active:translate-y-1 transition group relative overflow-hidden flex items-center justify-center gap-2 text-white"
                 >
                     <ArrowDown size={16} /> MERGULHAR
                 </button>
                 <button
                     onClick={handleAscend}
-                    className="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-xs font-bold border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition text-rose-300 flex items-center justify-center gap-1"
+                    className="col-span-2 bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-xs font-bold border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition text-rose-300 flex items-center justify-center gap-1"
                 >
                     <ArrowUp size={14} /> SUBIR
                 </button>
@@ -164,9 +175,16 @@ export default function StatusPanel() {
                     <Hammer size={14} />
                 </button>
                 <button
+                    onClick={() => setShowBook(true)}
+                    className="bg-amber-900 hover:bg-amber-800 p-2 rounded-lg text-xs font-bold border-b-4 border-amber-950 active:border-b-0 active:translate-y-1 transition text-amber-200 flex items-center justify-center gap-1"
+                    title="Enciclopédia"
+                >
+                    <Book size={14} />
+                </button>
+                <button
                     onClick={() => setShowShop(true)}
                     disabled={state.player.depth > 0}
-                    className={`col-span-2 p-2 rounded-lg text-xs font-bold border-b-4 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2 ${state.player.depth > 0
+                    className={`col-span-4 p-2 rounded-lg text-xs font-bold border-b-4 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2 ${state.player.depth > 0
                         ? 'bg-slate-800 text-slate-500 border-slate-900 cursor-not-allowed opacity-50'
                         : 'bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-950'
                         }`}
@@ -178,6 +196,7 @@ export default function StatusPanel() {
 
             {showShop && <ShopPanel onClose={() => setShowShop(false)} />}
             {showCrafting && <CraftingPanel onClose={() => setShowCrafting(false)} />}
-        </div >
+            {showBook && <RelicBookModal onClose={() => setShowBook(false)} />}
+        </div>
     );
 }

@@ -197,7 +197,9 @@ export default function ShopPanel({ onClose }) {
                             <h3 className="text-xl font-serif text-slate-200 mb-2">Avaliador de Relíquias</h3>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full max-w-4xl mt-6">
-                                {state.inventory.map((itemId, idx) => {
+                                {state.inventory.map((itemEntry, idx) => {
+                                    const itemId = typeof itemEntry === 'string' ? itemEntry : itemEntry.id;
+                                    const count = typeof itemEntry === 'string' ? 1 : (itemEntry.count || 1);
                                     const item = ITEMS.find(i => i.id === itemId);
                                     if (item?.type !== 'relic_raw') return null;
 
@@ -205,10 +207,15 @@ export default function ShopPanel({ onClose }) {
                                         <button
                                             key={idx}
                                             onClick={() => dispatch({ type: 'APPRAISE_ITEM', payload: { index: idx } })}
-                                            className="bg-slate-800/50 p-3 rounded-lg border border-purple-500/20 hover:border-purple-400 hover:bg-slate-800 transition flex flex-col items-center text-center group"
+                                            className="bg-slate-800/50 p-3 rounded-lg border border-purple-500/20 hover:border-purple-400 hover:bg-slate-800 transition flex flex-col items-center text-center group relative"
                                         >
-                                            <div className="w-12 h-12 bg-black/30 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                                            <div className="w-12 h-12 bg-black/30 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition relative">
                                                 <Package size={24} className="text-slate-500 group-hover:text-purple-300" />
+                                                {count > 1 && (
+                                                    <span className="absolute -bottom-1 -right-1 bg-black text-white text-[9px] font-bold px-1 rounded border border-slate-600">
+                                                        x{count}
+                                                    </span>
+                                                )}
                                             </div>
                                             <span className="font-bold text-slate-300 text-xs mb-1 truncate w-full">{item.name}</span>
                                             <span className="text-[10px] text-purple-400">50 Orth</span>
@@ -217,30 +224,44 @@ export default function ShopPanel({ onClose }) {
                                 })}
                             </div>
 
-                            {!state.inventory.some(id => ITEMS.find(i => i.id === id)?.type === 'relic_raw') && (
-                                <div className="text-slate-600 text-sm mt-4">
-                                    Nenhuma relíquia para avaliar.
-                                </div>
-                            )}
+                            {!state.inventory.some(entry => {
+                                const id = typeof entry === 'string' ? entry : entry.id;
+                                return ITEMS.find(i => i.id === id)?.type === 'relic_raw';
+                            }) && (
+                                    <div className="text-slate-600 text-sm mt-4">
+                                        Nenhuma relíquia para avaliar.
+                                    </div>
+                                )}
                         </div>
                     )}
 
                     {tab === 'sell' && (
                         <div className="animate-slide-up max-w-6xl mx-auto">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                                {state.inventory.map((itemId, idx) => {
+                                {state.inventory.map((itemEntry, idx) => {
+                                    const itemId = typeof itemEntry === 'string' ? itemEntry : itemEntry.id;
+                                    const count = typeof itemEntry === 'string' ? 1 : (itemEntry.count || 1);
                                     const item = ITEMS.find(i => i.id === itemId);
                                     const Icon = item ? (IconMap[item.icon] || Box) : Box;
 
                                     return (
                                         <button
                                             key={idx}
-                                            onClick={() => sellItem(idx)}
-                                            className="group bg-slate-900/40 p-3 rounded-lg border border-slate-800 hover:border-red-500/50 hover:bg-red-900/10 transition-all flex flex-col items-center"
+                                            onClick={() => {
+                                                const sellId = typeof state.inventory[idx] === 'string' ? state.inventory[idx] : state.inventory[idx].id;
+                                                const sellItemObj = ITEMS.find(i => i.id === sellId);
+                                                dispatch({ type: 'SELL_ITEM', payload: { index: idx, gold: Math.floor((sellItemObj?.price || 0) * 0.5) } });
+                                            }}
+                                            className="group bg-slate-900/40 p-3 rounded-lg border border-slate-800 hover:border-red-500/50 hover:bg-red-900/10 transition-all flex flex-col items-center relative"
                                             title={`${item?.name}\n${item?.desc || ''}\nPreço: ${Math.floor((item?.price || 0) * 0.5)} Orth`}
                                         >
-                                            <div className={`p-3 rounded-full bg-black/30 mb-2 ${item?.color} group-hover:scale-110 transition`}>
+                                            <div className={`p-3 rounded-full bg-black/30 mb-2 ${item?.color} group-hover:scale-110 transition relative`}>
                                                 <Icon size={20} />
+                                                {count > 1 && (
+                                                    <span className="absolute -bottom-1 -right-1 bg-black text-white text-[9px] font-bold px-1 rounded border border-slate-600">
+                                                        x{count}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="text-center w-full min-w-0">
                                                 <p className="text-xs font-bold text-slate-300 w-full truncate">{item?.name || '???'}</p>

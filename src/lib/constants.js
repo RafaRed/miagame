@@ -1,4 +1,13 @@
+import layer0 from '../assets/images/layers/0.png';
+import layer1 from '../assets/images/layers/1.png';
+import layer2 from '../assets/images/layers/2.png';
+import layer3 from '../assets/images/layers/3.png';
+import layer4 from '../assets/images/layers/4.png';
+import layer5 from '../assets/images/layers/5.png';
+import layer6 from '../assets/images/layers/6.png';
+
 export const ITEMS = [
+    // ... existing items start
     // Materials
     { id: 'scrap', name: 'Sucata', type: 'material', price: 15, icon: 'cog', color: 'text-stone-500', desc: "Restos de tecnologia antiga." },
     { id: 'abyss_dust', name: 'Pó do Abismo', type: 'material', price: 30, icon: 'wind', color: 'text-purple-400', desc: "Poeira com propriedades místicas." },
@@ -37,14 +46,24 @@ export const ITEMS = [
     { id: 'abyss_map', name: 'Mapa do Neto', type: 'relic', price: 4000, icon: 'compass', color: 'text-yellow-200', desc: "Revela atalhos seguros.", rarity: 1 },
     { id: 'sun_sphere', name: 'Esfera Solar', type: 'relic', price: 3000, icon: 'sun', color: 'text-amber-300', desc: "Contém a luz de uma estrela.", rarity: 1 },
 
+    // NPC / Special Items
+    { id: 'curse_warding_box', name: 'Caixa Anti-Maldição', type: 'relic', price: 8000, icon: 'box', color: 'text-stone-200', desc: "Permite subir sem sofrer a maldição (Uso Único).", rarity: 1 },
+    { id: 'cartridge', name: 'Cartucho', type: 'item', price: 10000, icon: 'battery', color: 'text-pink-500', desc: "Contém a 'Bênção'. Cruel, mas eficiente.", rarity: 0 },
+    { id: 'book_of_abyss', name: 'Livro do Abismo', type: 'key_item', price: 0, icon: 'book', color: 'text-indigo-400', desc: "Catalogar descobertas.", rarity: 0 },
+
+    // New Lore Relics with Effects
+    { id: 'nil_stars', name: 'Estrelas do Nada', type: 'relic', price: 600, icon: 'shapes', color: 'text-blue-200', desc: "Fragmentos que flutuam sozinhos.", rarity: 3 },
+    { id: 'ether_crystal', name: 'Cristal de Éter', type: 'relic', price: 900, icon: 'zap', color: 'text-cyan-400', desc: "Vibra com energia pura.", rarity: 3 },
+    { id: 'grim_cup', name: 'Cálice Sombrio', type: 'relic', price: 1200, icon: 'utensils', color: 'text-purple-900', desc: "Qualquer líquido colocado aqui ferve.", rarity: 2 },
+    { id: 'golden_city_shard', name: 'Fragmento Dourado', type: 'relic', price: 4500, icon: 'sun', color: 'text-yellow-400', desc: "Pedaço da lendária Cidade Dourada.", rarity: 1 },
+
     // Grade Special (Aubade)
     { id: 'reg_arm', name: 'Braço Mecânico', type: 'equip', slot: 'weapon', price: 9999, effect: { atk: 500 }, icon: 'zap', color: 'text-yellow-500 border-yellow-500 animate-pulse', desc: "Incinerador. Poder destrutivo total.", rarity: 0 },
-
+    { id: 'blaze_reap', name: 'Blaze Reap', type: 'equip', slot: 'weapon', price: 2500, effect: { atk: 80 }, icon: 'gavel', color: 'text-orange-500', desc: "Arma lendária explosiva. +80 Ataque." },
 
     // Equip
     { id: 'pickaxe', name: 'Picareta', type: 'equip', slot: 'weapon', price: 500, effect: { atk: 20 }, icon: 'hammer', color: 'text-slate-300', desc: "Arma improvisada. +20 Ataque." },
     { id: 'star_compass', name: 'Bússola Estelar', type: 'equip', slot: 'charm', price: 1000, effect: { speed: 1.5 }, icon: 'compass', color: 'text-blue-400', desc: "Mostra o caminho. Desça mais rápido." },
-    { id: 'blaze_reap', name: 'Blaze Reap', type: 'equip', slot: 'weapon', price: 2500, effect: { atk: 80 }, icon: 'gavel', color: 'text-orange-500', desc: "Arma lendária explosiva. +80 Ataque." }
 ];
 
 export const MONSTERS = [
@@ -107,11 +126,11 @@ export const RECIPES = [
 ];
 
 export const LAYERS = [
-    { name: "Borda do Abismo", min: 0, max: 1350, img: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&q=80", curse: "Leve Tontura" },
-    { name: "Floresta da Tentação", min: 1351, max: 2600, img: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&q=80", curse: "Náusea Intensa" },
-    { name: "A Grande Falha", min: 2601, max: 7000, img: "https://images.unsplash.com/photo-1504214208698-ea1916a2195a?auto=format&fit=crop&q=80", curse: "Alucinações" },
-    { name: "Cálices de Gigantes", min: 7001, max: 12000, img: "https://images.unsplash.com/photo-1508264367332-9cb8dc22180c?auto=format&fit=crop&q=80", curse: "Sangramento" },
-    { name: "Mar de Cadáveres", min: 12001, max: 13000, img: "https://images.unsplash.com/photo-1463123081275-7359ea4bc837?auto=format&fit=crop&q=80", curse: "Perda dos Sentidos" },
-    { name: "Capital sem Retorno", min: 13001, max: 15500, img: "https://images.unsplash.com/photo-1592388796828-569d6c29c5ac?auto=format&fit=crop&q=80", curse: "Perda da Humanidade" },
-    { name: "O Turbilhão Final", min: 15501, max: 99999, img: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&q=80", curse: "Morte Certa" },
+    { name: "Borda do Abismo", min: 0, max: 1350, img: layer0, curse: "Leve Tontura" },
+    { name: "Floresta da Tentação", min: 1351, max: 2600, img: layer1, curse: "Náusea Intensa" },
+    { name: "A Grande Falha", min: 2601, max: 7000, img: layer2, curse: "Alucinações" },
+    { name: "Cálices de Gigantes", min: 7001, max: 12000, img: layer3, curse: "Sangramento" },
+    { name: "Mar de Cadáveres", min: 12001, max: 13000, img: layer4, curse: "Perda dos Sentidos" },
+    { name: "Capital sem Retorno", min: 13001, max: 15500, img: layer5, curse: "Perda da Humanidade" },
+    { name: "O Turbilhão Final", min: 15501, max: 99999, img: layer6, curse: "Morte Certa" },
 ];

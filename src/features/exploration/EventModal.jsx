@@ -14,8 +14,8 @@ export default function EventModal() {
 
     const handleAction = () => {
         // Handle specific event logic (Accept loot, Start combat)
-        if (event.type === 'LOOT') {
-            dispatch({ type: 'BUY_ITEM', payload: { item: event.data, cost: 0 } }); // Free item
+        if (event.type === 'LOOT' || event.type === 'RELIC') {
+            dispatch({ type: 'LOOT_FOUND', payload: { item: event.data } });
             // dispatch({ type: 'ADD_LOG', payload: ... })
         }
         if (event.type === 'COMBAT') {
@@ -30,12 +30,13 @@ export default function EventModal() {
                 <div className="mb-4 flex justify-center text-relic-gold">
                     {event.type === 'COMBAT' && <Skull size={48} className="animate-pulse" />}
                     {event.type === 'LOOT' && <Gift size={48} className="animate-bounce" />}
+                    {event.type === 'RELIC' && <Gift size={56} className="text-purple-400 drop-shadow-glow animate-bounce" />}
                     {event.type === 'INTERACTION' && <Eye size={64} className="text-purple-400 drop-shadow-glow animate-pulse" />}
                     {event.type === 'FLAVOR' && <Eye size={48} className="opacity-50" />}
                 </div>
 
                 <h3 className="text-xl font-bold text-slate-100 mb-2 uppercase tracking-widest">
-                    {event.type === 'COMBAT' ? 'Perigo!' : event.type === 'LOOT' ? 'Descoberta!' : event.type === 'INTERACTION' ? event.data.name : '...'}
+                    {event.type === 'COMBAT' ? 'Perigo!' : (event.type === 'LOOT' || event.type === 'RELIC') ? 'Descoberta!' : event.type === 'INTERACTION' ? event.data.name : '...'}
                 </h3>
 
                 <p className="text-slate-300 mb-6 italic">"{event.text}"</p>
