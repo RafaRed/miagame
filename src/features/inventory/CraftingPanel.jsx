@@ -87,8 +87,8 @@ export default function CraftingPanel({ onClose }) {
                                             <Icon size={18} />
                                         </div>
                                         <div className="overflow-hidden">
-                                            <p className="font-bold text-sm truncate" title={item.desc}>{item.name}</p>
-                                            <p className="text-[10px] text-slate-400 truncate">{item.desc} {item.effect ? `(${JSON.stringify(item.effect)})` : ''}</p>
+                                            <p className="font-bold text-sm whitespace-normal leading-tight" title={item.name}>{item.name}</p>
+                                            <p className="text-[10px] text-slate-400 whitespace-normal mt-0.5 leading-relaxed">{item.desc} {item.effect ? `(${JSON.stringify(item.effect)})` : ''}</p>
                                         </div>
                                     </div>
                                     {item.type === 'consumable' && (

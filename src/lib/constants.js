@@ -1,19 +1,19 @@
 export const ITEMS = [
     // Materials
-    { id: 'scrap', name: 'Sucata', type: 'material', price: 10, icon: 'cog', color: 'text-stone-500', desc: "Restos de tecnologia antiga." },
-    { id: 'abyss_dust', name: 'Pó do Abismo', type: 'material', price: 25, icon: 'wind', color: 'text-purple-400', desc: "Poeira com propriedades místicas." },
-    { id: 'monster_bone', name: 'Osso', type: 'material', price: 15, icon: 'bone', color: 'text-stone-300', desc: "Material resistente para criação." },
+    { id: 'scrap', name: 'Sucata', type: 'material', price: 15, icon: 'cog', color: 'text-stone-500', desc: "Restos de tecnologia antiga." },
+    { id: 'abyss_dust', name: 'Pó do Abismo', type: 'material', price: 30, icon: 'wind', color: 'text-purple-400', desc: "Poeira com propriedades místicas." },
+    { id: 'monster_bone', name: 'Osso', type: 'material', price: 20, icon: 'bone', color: 'text-stone-300', desc: "Material resistente para criação." },
 
     // Consumables
-    { id: 'ration', name: 'Ração', type: 'consumable', price: 25, effect: { hunger: 25 }, icon: 'bread-slice', color: 'text-amber-600', desc: "Comida básica. +25 Fome." },
+    { id: 'ration', name: 'Ração', type: 'consumable', price: 20, effect: { hunger: 30 }, icon: 'bread-slice', color: 'text-amber-600', desc: "Comida básica. +30 Fome." },
     { id: 'medkit', name: 'Kit Médico', type: 'consumable', price: 100, effect: { hp: 50 }, icon: 'first-aid', color: 'text-rose-500', desc: "Primeiros socorros. +50 Vida." },
-    { id: 'meat', name: 'Carne Crua', type: 'consumable', price: 40, effect: { hunger: 40, hp: -5 }, icon: 'drumstick', color: 'text-red-700', desc: "Nutritiva mas perigosa. +40 Fome, -5 Vida." },
-    { id: 'cooked_meat', name: 'Bife', type: 'consumable', price: 60, effect: { hunger: 60, hp: 10 }, icon: 'utensils', color: 'text-orange-500', desc: "Bem passado. +60 Fome, +10 Vida." },
+    { id: 'meat', name: 'Carne Crua', type: 'consumable', price: 50, effect: { hunger: 40, hp: -5 }, icon: 'drumstick', color: 'text-red-700', desc: "Nutritiva mas perigosa. +40 Fome, -5 Vida." },
+    { id: 'cooked_meat', name: 'Bife', type: 'consumable', price: 80, effect: { hunger: 70, hp: 15 }, icon: 'utensils', color: 'text-orange-500', desc: "Bem passado. +70 Fome, +15 Vida." },
 
     // Loot
-    { id: 'stone', name: 'Pedra', type: 'loot', price: 5, icon: 'box', color: 'text-slate-600', desc: "Apenas uma pedra." },
-    { id: 'relic_fragment', name: 'Fragmento de Relíquia', type: 'loot', price: 100, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
-    { id: 'sun_sphere', name: 'Esfera Solar', type: 'loot', price: 150, icon: 'sun', color: 'text-amber-300', desc: "Brilha eternamente." },
+    { id: 'stone', name: 'Minério Comum', type: 'loot', price: 15, icon: 'box', color: 'text-slate-600', desc: "Pode conter traços de minérios valiosos." },
+    { id: 'relic_fragment', name: 'Fragmento de Relíquia', type: 'loot', price: 150, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
+    { id: 'sun_sphere', name: 'Esfera Solar', type: 'loot', price: 250, icon: 'sun', color: 'text-amber-300', desc: "Brilha eternamente." },
 
     // Appraisal Items
 
@@ -53,10 +53,57 @@ export const MONSTERS = [
     { name: "Devorador", power: 120, drops: ['relic_fragment', 'monster_bone', 'dirty_relic'], chance: 0.3 }
 ];
 
+// NPCs & Events
+export const NPCS = [
+    {
+        id: 'ozen',
+        name: 'Ozen, a Imóvel',
+        title: 'Apito Branco',
+        minDepth: 1800,
+        maxDepth: 2600,
+        chance: 0.02,
+        dialogue: "Oh? Um ratinho perdido... Quer ser esmagado ou treinado?",
+        img: 'ozen_silhouette', // Placeholder for icon mapping
+        options: [
+            { id: 'train_str', label: 'Treino Brutal', costLabel: '-50 HP, -50 Fome', cost: { hp: 50, hunger: 50 }, reward: { type: 'buff_str', val: 5 }, text: "Ela te espanca sem piedade. Seus ossos cicatrizam mais fortes." },
+            { id: 'buy_box', label: 'Comprar Caixa O.D.', costLabel: '5000 Orth', cost: { gold: 5000 }, reward: { type: 'item', id: 'curse_warding_box' }, text: "Uma caixa pesada feita de relíquia." }
+        ]
+    },
+    {
+        id: 'nanachi',
+        name: 'Nanachi',
+        title: 'Narehate',
+        minDepth: 3900,
+        maxDepth: 4500,
+        chance: 0.03,
+        dialogue: "Naaa... Você cheira bem. Quer que eu cozinhe algo?",
+        img: 'nanachi_silhouette',
+        options: [
+            { id: 'cook_meal', label: 'Comer "Comida Especial"', costLabel: '1000 Orth', cost: { gold: 1000 }, reward: { type: 'restore_all' }, text: "O gosto é horrível, mas você se sente renovado." },
+            { id: 'ask_tips', label: 'Dicas do Abismo', costLabel: 'Grátis', cost: {}, reward: { type: 'reveal_map' }, text: "Nanachi te ensina a ver o fluxo de consciência." }
+        ]
+    },
+    {
+        id: 'bondrewd',
+        name: 'Bondrewd',
+        title: 'O Soberano da Alvorada',
+        minDepth: 12000,
+        maxDepth: 14000,
+        chance: 0.02,
+        dialogue: "Oya oya... Um triunfo maravilhoso. Gostaria de participar de um experimento?",
+        img: 'bondrewd_silhouette',
+        options: [
+            { id: 'humanity_trade', label: 'Vender Humanidade', costLabel: 'Sua Humanidade', cost: { humanity: 'all' }, reward: { type: 'item', id: 'cartridge' }, text: "Você se sente vazio, mas protegido." },
+            { id: 'blessing', label: 'Receber Bênção', costLabel: '-90% HP Máx', cost: { maxHp_percent: 0.9 }, reward: { type: 'relic_legendary' }, text: "Uma dor excruciante... seguida de poder." }
+        ]
+    }
+];
+
 export const RECIPES = [
     { res: 'cooked_meat', req: { 'meat': 1 }, desc: "Cozinhar carne." },
     { res: 'medkit', req: { 'scrap': 2, 'abyss_dust': 1 }, desc: "Remédio caseiro." },
-    { res: 'pickaxe', req: { 'scrap': 5, 'monster_bone': 2 }, desc: "Arma básica." }
+    { res: 'pickaxe', req: { 'scrap': 5, 'monster_bone': 2 }, desc: "Arma básica." },
+    { res: 'thousand_men_wedge', req: { 'relic_fragment': 10, 'monster_bone': 20 }, desc: "Relíquia de força bruta." }
 ];
 
 export const LAYERS = [

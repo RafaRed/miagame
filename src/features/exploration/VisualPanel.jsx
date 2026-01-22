@@ -26,10 +26,22 @@ const GameLog = () => {
 };
 
 export default function VisualPanel() {
-    const { state } = useGameState();
+    const { state, dispatch } = useGameState();
     const depth = state.player.depth;
 
     const currentLayer = LAYERS.find(l => depth >= l.min && depth <= l.max) || LAYERS[0];
+
+    const handleUseItem = (itemEntry, idx) => {
+        const itemId = typeof itemEntry === 'string' ? itemEntry : itemEntry.id;
+        const item = ITEMS.find(i => i.id === itemId);
+        if (!item) return;
+
+        if (item.type === 'consumable') {
+            dispatch({ type: 'USE_ITEM', payload: { item, index: idx } });
+        } else if (item.type === 'equip') {
+            dispatch({ type: 'EQUIP_ITEM', payload: { item, index: idx } });
+        }
+    };
 
     return (
         <div
@@ -49,24 +61,33 @@ export default function VisualPanel() {
             {/* Game Log */}
             <GameLog />
 
-            {/* Inventory Strip Placeholder */}
+            {/* Inventory Strip (Hotbar) */}
             <div className="absolute bottom-0 w-full z-20 bg-abyss-900/95 border-t border-slate-800 p-2 h-20 flex flex-col shadow-[0_-5px_20px_rgba(0,0,0,0.8)] backdrop-blur px-4">
-                <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-1">Mochila</span>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                    {state.inventory.map((item, idx) => {
-                        const itemId = typeof item === 'string' ? item : item.id;
+                <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-1">Mochila (Clique para usar)</span>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {state.inventory.map((itemEntry, idx) => { // Fixed mapping variable name
+                        const itemId = typeof itemEntry === 'string' ? itemEntry : itemEntry.id;
                         const itemDef = ITEMS.find(i => i.id === itemId);
                         if (!itemDef) return null;
 
                         const Icon = IconMap[itemDef.icon] || Box;
                         const tooltip = `${itemDef.name}\n${itemDef.desc}\n${itemDef.effect ? JSON.stringify(itemDef.effect) : ''}`;
+                        const isInteractive = itemDef.type === 'consumable' || itemDef.type === 'equip';
 
                         return (
-                            <div key={idx} className={`w-10 h-10 shrink-0 rounded bg-slate-800 border border-slate-700 flex items-center justify-center ${itemDef.color} relative group cursor-help`} title={tooltip}>
+                            <button
+                                key={idx}
+                                onClick={() => handleUseItem(itemEntry, idx)}
+                                disabled={!isInteractive}
+                                className={`w-10 h-10 shrink-0 rounded bg-slate-800 border border-slate-700 flex items-center justify-center ${itemDef.color} relative group 
+                                    ${isInteractive ? 'hover:border-white cursor-pointer active:scale-95' : 'cursor-default opacity-80'} transition-all`}
+                                title={tooltip}
+                            >
                                 <Icon size={20} />
-                                {itemDef.type === 'consumable' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>}
+                                {itemDef.type === 'consumable' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div>}
+                                {itemDef.type === 'equip' && <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div>}
                                 {(typeof item === 'object' && item.count > 1) && <span className="absolute bottom-0 right-0 text-[10px] bg-black/80 px-1 rounded-tl text-white font-mono">{item.count}</span>}
-                            </div>
+                            </button>
                         );
                     })}
                 </div>

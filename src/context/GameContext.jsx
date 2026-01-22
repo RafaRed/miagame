@@ -53,26 +53,68 @@ function gameReducer(state, action) {
         case 'SET_NAME':
             return { ...state, player: { ...state.player, name: action.payload } };
 
-        case 'DESCEND':
-            // Basic descend logic (cost handled by caller or here? Caller usually better for side effects, but reducer for state update)
+        case 'DESCEND': {
+            const cost = action.payload.cost || 2;
+            const currentHunger = state.player.hunger;
+            let newHunger = currentHunger - cost;
+            let hpPenalty = 0;
+            let newLogs = state.status.logs || [];
+
+            if (newHunger < 0) {
+                hpPenalty = Math.abs(newHunger) * 2; // 2 HP per missing hunger point
+                newHunger = 0;
+                newLogs = ["Você está faminto! A saúde está se deteriorando.", ...newLogs].slice(0, 50);
+            }
+
+            const newHp = Math.max(0, state.player.hp - hpPenalty);
+
             return {
                 ...state,
                 player: {
                     ...state.player,
                     depth: state.player.depth + action.payload.amount,
                     maxDepth: Math.max(state.player.maxDepth, state.player.depth + action.payload.amount),
-                    hunger: Math.max(0, state.player.hunger - action.payload.cost)
+                    hunger: newHunger,
+                    hp: newHp
+                },
+                status: {
+                    ...state.status,
+                    isDead: newHp <= 0,
+                    logs: newHp < state.player.hp ? newLogs : state.status.logs
                 }
             };
+        }
 
-        case 'ASCEND':
+        case 'ASCEND': {
+            const cost = action.payload.cost || 2;
+            const currentHunger = state.player.hunger;
+            let newHunger = currentHunger - cost;
+            let hpPenalty = 0;
+            let newLogs = state.status.logs || [];
+
+            if (newHunger < 0) {
+                hpPenalty = Math.abs(newHunger) * 3; // Climbing while starving is harder
+                newHunger = 0;
+                newLogs = ["A subida exige energia! Você está morrendo de fome.", ...newLogs].slice(0, 50);
+            }
+
+            const newHp = Math.max(0, state.player.hp - hpPenalty);
+
             return {
                 ...state,
                 player: {
                     ...state.player,
-                    depth: Math.max(0, state.player.depth - action.payload.amount)
+                    depth: Math.max(0, state.player.depth - action.payload.amount),
+                    hunger: newHunger,
+                    hp: newHp
+                },
+                status: {
+                    ...state.status,
+                    isDead: newHp <= 0,
+                    logs: newHp < state.player.hp ? newLogs : state.status.logs
                 }
             };
+        }
 
         case 'TAKE_DAMAGE':
             const newHp = Math.max(0, state.player.hp - action.payload);
@@ -156,6 +198,69 @@ function gameReducer(state, action) {
                 inventory: newInv,
                 resources: { ...state.resources, gold: state.resources.gold + action.payload.gold }
             };
+
+        case 'INTERACT_NPC': {
+            const { cost, reward } = action.payload;
+            const updates = { ...state.player };
+            const resources = { ...state.resources };
+            let inventory = [...state.inventory];
+            let logs = state.status.logs || [];
+
+            // Pay Costs
+            if (cost.gold && resources.gold < cost.gold) {
+                logs = ["Dinheiro insuficiente!", ...logs];
+                return { ...state, status: { ...state.status, logs } };
+            }
+            if (cost.hp && updates.hp <= cost.hp) {
+                logs = ["Vida insuficiente para pagar o preço!", ...logs];
+                return { ...state, status: { ...state.status, logs } };
+            }
+            if (cost.hunger && updates.hunger < cost.hunger) {
+                logs = ["Fome excessiva para treinar!", ...logs];
+                return { ...state, status: { ...state.status, logs } };
+            }
+
+            if (cost.gold) resources.gold -= cost.gold;
+            if (cost.hp) updates.hp -= cost.hp;
+            if (cost.hunger) updates.hunger -= cost.hunger;
+            if (cost.maxHp_percent) updates.maxHp = Math.floor(updates.maxHp * (1 - cost.maxHp_percent));
+            if (cost.humanity === 'all') resources.humanity = 0;
+
+            // Grant Rewards
+            let msg = "Troca realizada.";
+            if (reward.type === 'buff_str') {
+                // Assuming stats struct or simple damage mod. For now adding to a hidden stat or base power if exists.
+                // MIA prototype used weapon damage. I'll add a 'baseAtk' to player or just log it for now.
+                // Actually, let's update a new 'stats' object in player.
+                updates.baseAtk = (updates.baseAtk || 0) + reward.val;
+                msg = "Você se sente mais forte.";
+            }
+            if (reward.type === 'item') {
+                inventory.push(reward.id);
+                msg = "Item recebido.";
+            }
+            if (reward.type === 'restore_all') {
+                updates.hp = updates.maxHp;
+                updates.hunger = updates.maxHunger;
+                msg = "Vigor restaurado.";
+            }
+            if (reward.type === 'reveal_map') {
+                // Feature to implement later, for now just log
+                msg = "Segredos do abismo revelados (Bônus de XP).";
+                updates.xp += 1000;
+            }
+
+            return {
+                ...state,
+                player: updates,
+                resources: resources,
+                inventory: inventory,
+                status: {
+                    ...state.status,
+                    logs: [msg, ...logs].slice(0, 50)
+                }
+            };
+        }
 
         case 'APPRAISE_ITEM':
             const appIndex = action.payload.index;

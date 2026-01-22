@@ -30,11 +30,12 @@ export default function EventModal() {
                 <div className="mb-4 flex justify-center text-relic-gold">
                     {event.type === 'COMBAT' && <Skull size={48} className="animate-pulse" />}
                     {event.type === 'LOOT' && <Gift size={48} className="animate-bounce" />}
+                    {event.type === 'INTERACTION' && <Eye size={64} className="text-purple-400 drop-shadow-glow animate-pulse" />}
                     {event.type === 'FLAVOR' && <Eye size={48} className="opacity-50" />}
                 </div>
 
                 <h3 className="text-xl font-bold text-slate-100 mb-2 uppercase tracking-widest">
-                    {event.type === 'COMBAT' ? 'Perigo!' : event.type === 'LOOT' ? 'Descoberta!' : '...'}
+                    {event.type === 'COMBAT' ? 'Perigo!' : event.type === 'LOOT' ? 'Descoberta!' : event.type === 'INTERACTION' ? event.data.name : '...'}
                 </h3>
 
                 <p className="text-slate-300 mb-6 italic">"{event.text}"</p>
@@ -46,20 +47,38 @@ export default function EventModal() {
                     </div>
                 )}
 
-                <div className="flex gap-2 justify-center">
-                    {event.type !== 'FLAVOR' && (
-                        <button
-                            onClick={handleAction}
-                            className="bg-slate-100 hover:bg-white text-slate-900 font-bold py-2 px-6 rounded transition"
-                        >
-                            {event.type === 'COMBAT' ? 'LUTAR' : 'PEGAR'}
-                        </button>
+                <div className="flex gap-2 justify-center flex-wrap">
+                    {event.type === 'INTERACTION' ? (
+                        event.data.options.map((opt, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => {
+                                    dispatch({ type: 'INTERACT_NPC', payload: { npcId: event.data.id, optionId: opt.id, cost: opt.cost, reward: opt.reward } });
+                                    handleClose();
+                                }}
+                                className="bg-purple-900 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition border border-purple-500 flex flex-col items-center min-w-[120px]"
+                                title={opt.text}
+                            >
+                                <span className="text-sm">{opt.label}</span>
+                                <span className="text-[10px] text-purple-300 md:block hidden">{opt.costLabel}</span>
+                            </button>
+                        ))
+                    ) : (
+                        event.type !== 'FLAVOR' && (
+                            <button
+                                onClick={handleAction}
+                                className="bg-slate-100 hover:bg-white text-slate-900 font-bold py-2 px-6 rounded transition"
+                            >
+                                {event.type === 'COMBAT' ? 'LUTAR' : 'PEGAR'}
+                            </button>
+                        )
                     )}
+
                     <button
                         onClick={handleClose}
                         className="bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-2 px-6 rounded transition border border-slate-700"
                     >
-                        {event.type === 'COMBAT' ? 'FUGIR' : 'IGNORAR'}
+                        {event.type === 'COMBAT' ? 'FUGIR' : event.type === 'INTERACTION' ? 'SAIR' : 'IGNORAR'}
                     </button>
                 </div>
             </div>
