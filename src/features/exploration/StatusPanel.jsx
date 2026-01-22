@@ -25,8 +25,31 @@ const ProgressBar = ({ value, max, color, label, icon }) => {
 
 export default function StatusPanel() {
     const { state, dispatch } = useGameState();
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [tempName, setTempName] = useState("");
+
     const [showShop, setShowShop] = useState(false);
     const [showCrafting, setShowCrafting] = useState(false);
+
+    const handleStartEdit = () => {
+        setTempName(state.player.name);
+        setIsEditingName(true);
+    };
+
+    const handleNameSubmit = () => {
+        if (tempName.trim()) {
+            dispatch({ type: 'SET_NAME', payload: tempName.trim() });
+        }
+        setIsEditingName(false);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleNameSubmit();
+        } else if (e.key === 'Escape') {
+            setIsEditingName(false);
+        }
+    };
 
     const handleDescend = () => {
         dispatch({ type: 'DESCEND', payload: { amount: 10, cost: 2 } });
@@ -56,7 +79,6 @@ export default function StatusPanel() {
 
         dispatch({ type: 'ASCEND', payload: { amount: 50 } });
     };
-
     return (
         <div className="flex flex-col h-full">
             {/* Player Info */}
@@ -65,7 +87,26 @@ export default function StatusPanel() {
                     <span className="text-white text-xs font-bold">R</span>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                    <h2 className="font-bold text-lg text-slate-100 truncate">{state.player.name}</h2>
+                    {isEditingName ? (
+                        <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            onBlur={handleNameSubmit}
+                            onKeyDown={handleKeyDown}
+                            autoFocus
+                            maxLength={12}
+                            className="bg-slate-900 text-white font-bold text-lg border-b border-indigo-500 outline-none w-full px-1"
+                        />
+                    ) : (
+                        <h2
+                            onClick={handleStartEdit}
+                            className="font-bold text-lg text-slate-100 truncate cursor-pointer hover:text-indigo-400 transition-colors"
+                            title="Clique para alterar nome"
+                        >
+                            {state.player.name}
+                        </h2>
+                    )}
                     <span className="text-[10px] text-slate-400 uppercase tracking-widest block">Apito Vermelho</span>
                 </div>
             </div>
