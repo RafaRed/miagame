@@ -165,15 +165,32 @@ function gameReducer(state, action) {
             // Remove dirty relic
             appInv.splice(appIndex, 1);
 
-            // Roll for result
+            // Roll for result (Weighted Rarity)
             const roll = Math.random();
-            let resultId = 'stone'; // Default trash
-            if (roll > 0.98) resultId = 'white_whistle';
-            else if (roll > 0.90) resultId = 'blaze_reap';
-            else if (roll > 0.70) resultId = 'sun_sphere';
-            else if (roll > 0.50) resultId = 'abyss_map';
-            else if (roll > 0.30) resultId = 'relic_shard';
-            else if (roll > 0.10) resultId = 'star_compass_broken';
+            let resultId = 'stone';
+
+            // 1% Chance - Special (Aubade)
+            if (roll > 0.99) resultId = 'reg_arm';
+            // 4% Chance - Grade 1 (Legendary)
+            else if (roll > 0.95) {
+                const legendary = ['white_whistle', 'abyss_map', 'sun_sphere', 'blaze_reap'];
+                resultId = legendary[Math.floor(Math.random() * legendary.length)];
+            }
+            // 15% Chance - Grade 2 (Rare)
+            else if (roll > 0.80) {
+                const rare = ['thousand_men_wedge', 'life_stone', 'star_compass'];
+                resultId = rare[Math.floor(Math.random() * rare.length)];
+            }
+            // 30% Chance - Grade 3 (Uncommon)
+            else if (roll > 0.50) {
+                const uncommon = ['star_compass_broken', 'fog_weave', 'relic_fragment'];
+                resultId = uncommon[Math.floor(Math.random() * uncommon.length)];
+            }
+            // 50% Chance - Grade 4 (Common/Trash)
+            else {
+                const common = ['eternal_torch', 'hollow_vessel', 'stone', 'scrap'];
+                resultId = common[Math.floor(Math.random() * common.length)];
+            }
 
             // Add new item
             appInv.push(resultId);
@@ -269,13 +286,22 @@ function gameReducer(state, action) {
             let monsterHp = monster.hp;
 
             if (action.payload.action === 'ATTACK') {
-                // Calculate Player Damage with Equipment
-                const weaponDmg = state.equipment.weapon ? (state.equipment.weapon.power || 0) : 0;
-                // Base damage 5-15 + Weapon Power
-                pDmg = Math.floor(Math.random() * 10) + 5 + weaponDmg;
+                // Calculate Player Damage
+                // Weapon Atk + Charm Str or Atk
+                const weapon = state.equipment.weapon;
+                const charm = state.equipment.charm;
+
+                const weaponAtk = weapon?.effect?.atk || 0;
+                const charmStr = charm?.effect?.str || 0;
+                const charmAtk = charm?.effect?.atk || 0;
+
+                const totalBonus = weaponAtk + charmAtk + (charmStr * 2); // 1 Str = 2 Atk value
+
+                // Base damage 5-15 + Bonuses
+                pDmg = Math.floor(Math.random() * 10) + 5 + totalBonus;
 
                 monsterHp -= pDmg;
-                log.push(`Você causou ${pDmg} de dano${weaponDmg > 0 ? ` (+${weaponDmg} eqp)` : ''}.`);
+                log.push(`Você causou ${pDmg} de dano${totalBonus > 0 ? ` (+${totalBonus} eqp)` : ''}.`);
             }
 
             if (monsterHp > 0) {

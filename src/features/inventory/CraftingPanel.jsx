@@ -9,7 +9,7 @@ import { ITEMS, RECIPES } from '../../lib/constants';
 const IconMap = {
     'cog': Cog, 'wind': Wind, 'bone': Bone, 'bread-slice': Hexagon, 'first-aid': Cross,
     'drumstick': Drumstick, 'utensils': Utensils, 'box': Box, 'shapes': Shapes, 'sun': Sun,
-    'hammer': Hammer, 'compass': Compass, 'gavel': Gavel
+    'hammer': Hammer, 'compass': Compass, 'gavel': Gavel, 'heart': Utensils, 'triangle': Shapes, 'zap': Wind
 };
 
 export default function CraftingPanel({ onClose }) {

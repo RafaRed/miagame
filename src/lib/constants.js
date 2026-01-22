@@ -12,14 +12,34 @@ export const ITEMS = [
 
     // Loot
     { id: 'stone', name: 'Pedra', type: 'loot', price: 5, icon: 'box', color: 'text-slate-600', desc: "Apenas uma pedra." },
-    { id: 'relic_shard', name: 'Fragmento de Relíquia', type: 'loot', price: 100, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
+    { id: 'relic_fragment', name: 'Fragmento de Relíquia', type: 'loot', price: 100, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
     { id: 'sun_sphere', name: 'Esfera Solar', type: 'loot', price: 150, icon: 'sun', color: 'text-amber-300', desc: "Brilha eternamente." },
 
     // Appraisal Items
-    { id: 'dirty_relic', name: 'Relíquia Suja', type: 'relic_raw', price: 50, icon: 'box', color: 'text-stone-400', desc: "Precisa ser avaliada para revelar seu valor.", rarity: 1 },
-    { id: 'white_whistle', name: 'Apito Branco', type: 'relic', price: 5000, icon: 'bone', color: 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]', desc: "Símbolo lendário. Vale uma fortuna." },
-    { id: 'abyss_map', name: 'Mapa Antigo', type: 'relic', price: 800, icon: 'compass', color: 'text-emerald-300', desc: "Um mapa de uma camada esquecida." },
-    { id: 'star_compass_broken', name: 'Bússola Quebrada', type: 'relic', price: 200, icon: 'compass', color: 'text-slate-500', desc: "Ainda aponta para o fundo..." },
+
+    // Appraisal Items (Clean Relics)
+    { id: 'dirty_relic', name: 'Relíquia Suja', type: 'relic_raw', price: 50, icon: 'box', color: 'text-stone-400', desc: "Precisa ser avaliada.", rarity: 1 },
+
+    // Grade 4 (Common)
+    { id: 'eternal_torch', name: 'Tocha Eterna', type: 'relic', price: 200, icon: 'sun', color: 'text-orange-400', desc: "Nunca se apaga. Ilumina o caminho.", rarity: 4 },
+    { id: 'hollow_vessel', name: 'Vaso Vazio', type: 'relic', price: 180, icon: 'box', color: 'text-slate-400', desc: "Estranhamente leve.", rarity: 4 },
+
+    // Grade 3 (Uncommon)
+    { id: 'star_compass_broken', name: 'Bússola Quebrada', type: 'relic', price: 350, icon: 'compass', color: 'text-slate-500', desc: "Ainda aponta para o fundo...", rarity: 3 },
+    { id: 'fog_weave', name: 'Tecido de Névoa', type: 'relic', price: 400, icon: 'wind', color: 'text-gray-300', desc: "Leve como ar. Usado em roupas.", rarity: 3 },
+
+    // Grade 2 (Rare - usable/equipable in future)
+    { id: 'thousand_men_wedge', name: 'Cunha de Mil Homens', type: 'equip', slot: 'charm', price: 2500, effect: { str: 5 }, icon: 'triangle', color: 'text-red-500', desc: "Concede força sobre-humana. +5 Força.", rarity: 2 },
+    { id: 'life_stone', name: 'Pedra da Vida', type: 'consumable', price: 1500, effect: { hp: 100, hunger: 100 }, icon: 'heart', color: 'text-rose-600', desc: "Restaura vitalidade completa.", rarity: 2 },
+
+    // Grade 1 (Legendary)
+    { id: 'white_whistle', name: 'Apito Branco', type: 'relic', price: 5000, icon: 'bone', color: 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]', desc: "Símbolo lendário. Vale uma fortuna.", rarity: 1 },
+    { id: 'abyss_map', name: 'Mapa do Neto', type: 'relic', price: 4000, icon: 'compass', color: 'text-yellow-200', desc: "Revela atalhos seguros.", rarity: 1 },
+    { id: 'sun_sphere', name: 'Esfera Solar', type: 'relic', price: 3000, icon: 'sun', color: 'text-amber-300', desc: "Contém a luz de uma estrela.", rarity: 1 },
+
+    // Grade Special (Aubade)
+    { id: 'reg_arm', name: 'Braço Mecânico', type: 'equip', slot: 'weapon', price: 9999, effect: { atk: 500 }, icon: 'zap', color: 'text-yellow-500 border-yellow-500 animate-pulse', desc: "Incinerador. Poder destrutivo total.", rarity: 0 },
+
 
     // Equip
     { id: 'pickaxe', name: 'Picareta', type: 'equip', slot: 'weapon', price: 500, effect: { atk: 20 }, icon: 'hammer', color: 'text-slate-300', desc: "Arma improvisada. +20 Ataque." },
@@ -29,8 +49,8 @@ export const ITEMS = [
 
 export const MONSTERS = [
     { name: "Bico de Martelo", power: 20, drops: ['meat', 'monster_bone'], chance: 0.6 },
-    { name: "Serpente", power: 50, drops: ['meat', 'abyss_dust'], chance: 0.4 },
-    { name: "Devorador", power: 120, drops: ['relic_shard', 'monster_bone'], chance: 0.3 }
+    { name: "Serpente", power: 50, drops: ['meat', 'abyss_dust', 'dirty_relic'], chance: 0.4 },
+    { name: "Devorador", power: 120, drops: ['relic_fragment', 'monster_bone', 'dirty_relic'], chance: 0.3 }
 ];
 
 export const RECIPES = [
