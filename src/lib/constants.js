@@ -72,7 +72,7 @@ export const ITEMS = [
     { id: 'pickaxe', name: 'Picareta', type: 'equip', slot: 'weapon', price: 500, effect: { atk: 10 }, icon: 'hammer', color: 'text-slate-300', desc: "Ferramenta básica. +10 Atk." },
     { id: 'war_pick', name: 'Picareta de Guerra', type: 'equip', slot: 'weapon', price: 2000, effect: { atk: 25 }, icon: 'hammer', color: 'text-red-400', desc: "Feita para matar. +25 Atk." },
     { id: 'blaze_reap', name: 'Blaze Reap', type: 'equip', slot: 'weapon', price: 5000, effect: { atk: 80 }, icon: 'gavel', color: 'text-orange-500', desc: "Explosiva. +80 Atk." },
-    { id: 'reg_arm', name: 'Braço Mecânico', type: 'equip', slot: 'weapon', price: 99999, effect: { atk: 500 }, icon: 'zap', color: 'text-yellow-500', desc: "Arma suprema." },
+    { id: 'reg_arm', name: 'Braço Mecânico', type: 'equip', slot: 'weapon', price: 99999, effect: { atk: 500 }, maxUses: 10, icon: 'zap', color: 'text-yellow-500', desc: "Arma suprema. 10 usos antes de quebrar." },
 
     { id: 'star_compass', name: 'Bússola Estelar', type: 'consumable', price: 1000, useEffect: 'SCAN_EVENT', icon: 'compass', color: 'text-blue-400', desc: "Revela eventos próximos.", rarity: 2 },
     { id: 'thousand_men_wedge', name: 'Cunha de Mil Homens', type: 'equip', slot: 'charm', price: 2500, effect: { str: 5 }, icon: 'triangle', color: 'text-red-500', desc: "+5 Força." },

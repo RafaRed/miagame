@@ -845,6 +845,30 @@ function gameReducer(state, action) {
 
                 monsterHp -= pDmg;
                 log.push(`Você causou ${pDmg} de dano${totalBonus > 0 ? ` (+${totalBonus} bônus)` : ''}${state.status.vengeance ? ' (VINGANÇA!)' : ''}.`);
+
+                // Weapon Durability Check
+                if (weapon && weapon.maxUses) {
+                    const currentUses = weapon.uses ?? weapon.maxUses;
+                    const newUses = currentUses - 1;
+
+                    if (newUses <= 0) {
+                        // Weapon breaks!
+                        log.push(`${weapon.name} QUEBROU!`);
+                        state = {
+                            ...state,
+                            equipment: { ...state.equipment, weapon: null }
+                        };
+                    } else {
+                        log.push(`${weapon.name}: ${newUses} usos restantes.`);
+                        state = {
+                            ...state,
+                            equipment: {
+                                ...state.equipment,
+                                weapon: { ...weapon, uses: newUses }
+                            }
+                        };
+                    }
+                }
             }
 
             if (monsterHp > 0) {
