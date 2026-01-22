@@ -167,14 +167,16 @@ function gameReducer(state, action) {
                 resources: { ...state.resources, gold: state.resources.gold + action.payload }
             };
 
+        case 'TICK_FAST':
+            return {
+                ...state,
+                status: { ...state.status, curseIntensity: Math.max(0, state.status.curseIntensity - 5) }
+            };
+
         case 'TICK_PASSIVE':
-            // Handle passive regeneration or other time-based updates
-            // This might be complex, so we pass the calculated deltas
-            const currentCurse = state.status.curseIntensity || 0;
             return {
                 ...state,
                 resources: { ...state.resources, gold: state.resources.gold + (action.payload.gold || 0) },
-                status: { ...state.status, curseIntensity: Math.max(0, currentCurse - 5) }
             };
 
         case 'ADD_LOG':

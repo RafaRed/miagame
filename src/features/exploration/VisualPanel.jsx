@@ -53,28 +53,46 @@ export default function VisualPanel() {
     };
 
     const curseIntensity = state.status.curseIntensity || 0;
-    const blurAmount = (curseIntensity / 100) * 8; // Max 8px blur
-    const hueRotate = (curseIntensity / 100) * 45; // Max 45deg rotation
-    const saturate = 1 - (curseIntensity / 200); // Reduce saturation slightly
+
+    // Calculate visual effects based on Layer
+    const layerIndex = LAYERS.indexOf(currentLayer);
+    const i = curseIntensity / 100; // Normalized 0-1
+
+    let filterStyle = '';
+    let vignetteColor = 'rgba(128, 0, 128, 0.5)'; // Default Purple
+
+    if (layerIndex <= 1) { // Layers 1-2: Mild Dizziness
+        filterStyle = `blur(${i * 6}px) hue-rotate(${i * 15}deg) saturate(${1 - i * 0.2})`;
+        vignetteColor = `rgba(200, 100, 200, ${i})`;
+    } else if (layerIndex <= 3) { // Layers 3-4: Vertigo & Hallucinations
+        filterStyle = `blur(${i * 4}px) hue-rotate(${i * 120}deg) contrast(${1 + i * 0.5})`;
+        vignetteColor = `rgba(255, 50, 50, ${i})`; // Reddish for bleeding
+    } else if (layerIndex === 4) { // Layer 5: Sensory Deprivation
+        filterStyle = `blur(${i * 8}px) brightness(${1 - i * 0.8}) grayscale(${i})`;
+        vignetteColor = `rgba(0, 0, 0, ${i})`; // Darkness
+    } else { // Layer 6+: Loss of Humanity
+        filterStyle = `blur(${i * 10}px) invert(${i * 0.2}) contrast(${1 + i * 2})`;
+        vignetteColor = `rgba(255, 255, 255, ${i})`; // Whiteout/Transcendence
+    }
 
     return (
         <div className="relative flex-1 flex flex-col h-full overflow-hidden bg-black">
             {/* Background Layer with Effects */}
             <div
-                className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
+                className="absolute inset-0 bg-cover bg-center transition-all duration-200" // Faster transition for wobble
                 style={{
                     backgroundImage: `url(${currentLayer.img})`,
-                    filter: `blur(${blurAmount}px) hue-rotate(${hueRotate}deg) saturate(${saturate})`
+                    filter: filterStyle,
+                    transform: i > 0.5 ? `scale(${1 + i * 0.05})` : 'scale(1)' // Slight pulse
                 }}
             />
 
             {/* Curse Vignette Overlay */}
             {curseIntensity > 0 && (
                 <div
-                    className="absolute inset-0 pointer-events-none z-0 transition-opacity duration-1000"
+                    className="absolute inset-0 pointer-events-none z-0 transition-opacity duration-200"
                     style={{
-                        background: `radial-gradient(circle, transparent 40%, rgba(128, 0, 128, ${curseIntensity / 150}))`,
-                        opacity: curseIntensity / 100
+                        background: `radial-gradient(circle, transparent 20%, ${vignetteColor})`,
                     }}
                 ></div>
             )}

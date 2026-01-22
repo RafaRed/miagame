@@ -30,8 +30,23 @@ export function useGameLoop() {
                 dispatch({ type: 'TICK_PASSIVE', payload: { gold: goldGain } });
             }
 
-        }, 5000); // 5s loop for faster feedback
+        }, 5000); // 5s loop for economy
 
         return () => clearInterval(loop);
-    }, [state.machines, dispatch]);
+    }, [state.machines, state.resources.gold]); // Optimized deps
+
+    // Fast loop for visuals/combat/curse (100ms)
+    useEffect(() => {
+        const fastLoop = setInterval(() => {
+            // Dispatch fast tick if there is anything to update (like curse)
+            // We can read state inside dispatch usually or via ref, but here we just blindly dispatch 
+            // and let reducer decide if it needs to update (optimization: check state first if possible, but context state is in scope)
+            // To avoid spamming dispatch if intensity is 0, we can check state.
+            if (state.status.curseIntensity > 0) {
+                dispatch({ type: 'TICK_FAST' });
+            }
+        }, 200); // 200ms = 5 updates/sec. 100 -> 0 in 20 ticks (4s) if decay is 5.
+
+        return () => clearInterval(fastLoop);
+    }, [state.status.curseIntensity, dispatch]);
 }

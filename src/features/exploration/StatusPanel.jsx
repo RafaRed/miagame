@@ -65,15 +65,15 @@ export default function StatusPanel() {
     const whistle = getWhistleRank(state.player.maxDepth); // Rank based on deepest achievement
 
     const handleDescend = () => {
-        dispatch({ type: 'DESCEND', payload: { amount: 25, cost: 2 } }); // Faster descent
+        dispatch({ type: 'DESCEND', payload: { amount: 50, cost: 2 } }); // Double distance, reasonable cost
 
         // Trigger Event
-        const event = generateEvent(state.player.depth + 25);
-        if (event.type === 'LOOT') {
+        const event = generateEvent(state.player.depth + 50);
+        if (event.type === 'LOOT' || event.type === 'RELIC') { // Handle Relic event type
             dispatch({ type: 'LOOT_FOUND', payload: { item: event.data } });
         } else if (event.type === 'FLAVOR') {
             dispatch({ type: 'ADD_LOG', payload: event.text });
-        } else if (event.type === 'COMBAT' || event.type === 'INTERACTION' || event.type === 'RELIC') {
+        } else if (event.type === 'COMBAT' || event.type === 'INTERACTION') {
             dispatch({ type: 'TRIGGER_EVENT', payload: event });
         }
     };
@@ -81,11 +81,24 @@ export default function StatusPanel() {
     const handleAscend = () => {
         if (state.player.depth <= 0) return;
 
-        // Curse Logic
-        const damage = Math.floor(Math.random() * 8) + 5;
-        dispatch({ type: 'ASCEND', payload: { amount: 50, cost: 5 } }); // Climbing costs more hunger
-        dispatch({ type: 'TAKE_DAMAGE', payload: damage });
-        dispatch({ type: 'ADD_LOG', payload: `A Maldição do Abismo te atinge! -${damage} HP` });
+        // Curse Logic scaled by Depth
+        // Layer 1 (0-1350): Minimal damage (Nausea)
+        // Layer 2+: Real damage
+        let damage = 0;
+        const depth = state.player.depth;
+
+        if (depth < 1350) damage = Math.floor(Math.random() * 3); // 0-2
+        else if (depth < 2600) damage = Math.floor(Math.random() * 5) + 5; // 5-10
+        else damage = Math.floor(Math.random() * 10) + 10; // 10-20
+
+        dispatch({ type: 'ASCEND', payload: { amount: 50, cost: 2 } }); // Slower climb but fair hunger
+
+        if (damage > 0) {
+            dispatch({ type: 'TAKE_DAMAGE', payload: damage });
+            dispatch({ type: 'ADD_LOG', payload: `A Maldição do Abismo te atinge! -${damage} HP` });
+        } else {
+            dispatch({ type: 'ADD_LOG', payload: `Você sobe com tontura leve.` });
+        }
     };
 
     return (

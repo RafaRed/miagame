@@ -9,25 +9,23 @@ import layer6 from '../assets/images/layers/6.png';
 export const ITEMS = [
     // ... existing items start
     // Materials
-    { id: 'scrap', name: 'Sucata', type: 'material', price: 15, icon: 'cog', color: 'text-stone-500', desc: "Restos de tecnologia antiga." },
-    { id: 'abyss_dust', name: 'Pó do Abismo', type: 'material', price: 30, icon: 'wind', color: 'text-purple-400', desc: "Poeira com propriedades místicas." },
-    { id: 'monster_bone', name: 'Osso', type: 'material', price: 20, icon: 'bone', color: 'text-stone-300', desc: "Material resistente para criação." },
+    { id: 'scrap', name: 'Sucata', type: 'material', price: 25, icon: 'cog', color: 'text-stone-500', desc: "Restos de tecnologia antiga." },
+    { id: 'abyss_dust', name: 'Pó do Abismo', type: 'material', price: 40, icon: 'wind', color: 'text-purple-400', desc: "Poeira com propriedades místicas." },
+    { id: 'monster_bone', name: 'Osso', type: 'material', price: 30, icon: 'bone', color: 'text-stone-300', desc: "Material resistente para criação." },
 
     // Consumables
-    { id: 'ration', name: 'Ração', type: 'consumable', price: 20, effect: { hunger: 30 }, icon: 'bread-slice', color: 'text-amber-600', desc: "Comida básica. +30 Fome." },
+    { id: 'ration', name: 'Ração', type: 'consumable', price: 15, effect: { hunger: 40 }, icon: 'bread-slice', color: 'text-amber-600', desc: "Comida básica. +40 Fome." },
     { id: 'medkit', name: 'Kit Médico', type: 'consumable', price: 100, effect: { hp: 50 }, icon: 'first-aid', color: 'text-rose-500', desc: "Primeiros socorros. +50 Vida." },
-    { id: 'meat', name: 'Carne Crua', type: 'consumable', price: 50, effect: { hunger: 40, hp: -5 }, icon: 'drumstick', color: 'text-red-700', desc: "Nutritiva mas perigosa. +40 Fome, -5 Vida." },
-    { id: 'cooked_meat', name: 'Bife', type: 'consumable', price: 80, effect: { hunger: 70, hp: 15 }, icon: 'utensils', color: 'text-orange-500', desc: "Bem passado. +70 Fome, +15 Vida." },
+    { id: 'meat', name: 'Carne Crua', type: 'consumable', price: 50, effect: { hunger: 50, hp: -5 }, icon: 'drumstick', color: 'text-red-700', desc: "Nutritiva mas perigosa. +50 Fome, -5 Vida." },
+    { id: 'cooked_meat', name: 'Bife', type: 'consumable', price: 85, effect: { hunger: 80, hp: 15 }, icon: 'utensils', color: 'text-orange-500', desc: "Bem passado. +80 Fome, +15 Vida." },
 
     // Loot
-    { id: 'stone', name: 'Minério Comum', type: 'loot', price: 15, icon: 'box', color: 'text-slate-600', desc: "Pode conter traços de minérios valiosos." },
-    { id: 'relic_fragment', name: 'Fragmento de Relíquia', type: 'loot', price: 150, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
+    { id: 'stone', name: 'Minério Comum', type: 'loot', price: 20, icon: 'box', color: 'text-slate-600', desc: "Pode conter traços de minérios valiosos." },
+    { id: 'relic_fragment', name: 'Fragmento de Relíquia', type: 'loot', price: 180, icon: 'shapes', color: 'text-cyan-400', desc: "Parte de algo maior. Muito valioso." },
     { id: 'sun_sphere', name: 'Esfera Solar', type: 'loot', price: 250, icon: 'sun', color: 'text-amber-300', desc: "Brilha eternamente." },
 
     // Appraisal Items
-
-    // Appraisal Items (Clean Relics)
-    { id: 'dirty_relic', name: 'Relíquia Suja', type: 'relic_raw', price: 50, icon: 'box', color: 'text-stone-400', desc: "Precisa ser avaliada.", rarity: 1 },
+    { id: 'dirty_relic', name: 'Relíquia Suja', type: 'relic_raw', price: 60, icon: 'box', color: 'text-stone-400', desc: "Precisa ser avaliada.", rarity: 1 },
 
     // Grade 4 (Common)
     { id: 'eternal_torch', name: 'Tocha Eterna', type: 'relic', price: 200, icon: 'sun', color: 'text-orange-400', desc: "Nunca se apaga. Ilumina o caminho.", rarity: 4 },
