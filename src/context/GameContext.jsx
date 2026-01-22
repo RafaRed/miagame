@@ -383,10 +383,16 @@ function gameReducer(state, action) {
                 inboxVengeance = true;
                 inboxLogs.push("SEU PARCEIRO CAIU NO ABISMO. VINGANÇA ATIVADA!");
             }
+            let inboxGold = state.resources.gold;
+            if (msg.type === 'MARKET_SALE') {
+                inboxGold += msg.price;
+                inboxLogs.push(`Venda no Mercado: ${msg.item.name} vendido para ${msg.buyer} por ${msg.price} Orth.`);
+            }
 
             return {
                 ...state,
                 player: { ...state.player, hp: inboxHp, hunger: inboxHunger },
+                resources: { ...state.resources, gold: inboxGold },
                 status: {
                     ...state.status,
                     vengeance: inboxVengeance,
@@ -394,6 +400,32 @@ function gameReducer(state, action) {
                 }
             };
         }
+
+        case 'SELL_MARKET_ITEM':
+            return {
+                ...state,
+                inventory: removeFromStack(state.inventory, action.payload.index, 1),
+                status: { ...state.status, logs: ["Item listado no mercado.", ...(state.status.logs || [])].slice(0, 50) }
+            };
+
+        case 'BUY_MARKET_ITEM':
+            // Payload: { cost, item }
+            return {
+                ...state,
+                resources: { ...state.resources, gold: state.resources.gold - action.payload.cost },
+                inventory: addToStack(state.inventory, action.payload.item.id, 1),
+                status: { ...state.status, logs: [`Comprou ${action.payload.item.name} no mercado.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+
+        case 'CANCEL_MARKET_ITEM':
+            // Payload: { item }
+            return {
+                ...state,
+                inventory: addToStack(state.inventory, action.payload.item.id, 1),
+                status: { ...state.status, logs: [`Removeu ${action.payload.item.name} do mercado.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+
+
 
         case 'LIFELINE_SEND': {
             const { type: rType } = action.payload;

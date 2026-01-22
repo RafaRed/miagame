@@ -5,6 +5,7 @@ import ShopPanel from '../tycoon/ShopPanel';
 import CraftingPanel from '../inventory/CraftingPanel';
 import RelicBookModal from '../encyclopedia/RelicBookModal';
 import OutpostModal from '../tycoon/OutpostModal';
+import MarketPanel from '../tycoon/MarketPanel';
 import { generateEvent } from '../../utils/eventSystem';
 
 const ProgressBar = ({ value, max, color, label, icon }) => {
@@ -34,6 +35,7 @@ export default function StatusPanel() {
     const [showCrafting, setShowCrafting] = useState(false);
     const [showBook, setShowBook] = useState(false);
     const [showOutpost, setShowOutpost] = useState(false);
+    const [showMarket, setShowMarket] = useState(false);
 
     const handleStartEdit = () => {
         setTempName(state.player.name);
@@ -225,8 +227,8 @@ export default function StatusPanel() {
                     <button
                         onClick={() => dispatch({ type: 'TOGGLE_TRANSFORMATION' })}
                         className={`col-span-4 p-2 rounded-lg font-bold border-b-4 active:border-b-0 active:translate-y-1 transition text-white flex items-center justify-center gap-2 ${state.status.isTransformed
-                                ? 'bg-red-600 border-red-800 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]'
-                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-900'
+                            ? 'bg-red-600 border-red-800 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-900'
                             }`}
                     >
                         <Skull size={16} /> {state.status.isTransformed ? "REVERTER FORMA" : "MANIFESTAR MALDIÇÃO"}
@@ -260,13 +262,21 @@ export default function StatusPanel() {
                 <button
                     onClick={() => setShowShop(true)}
                     disabled={state.player.depth > 0}
-                    className={`col-span-4 p-2 rounded-lg text-xs font-bold border-b-4 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2 ${state.player.depth > 0
+                    className={`col-span-2 p-2 rounded-lg text-xs font-bold border-b-4 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2 ${state.player.depth > 0
                         ? 'bg-slate-800 text-slate-500 border-slate-900 cursor-not-allowed opacity-50'
                         : 'bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-950'
                         }`}
                     title={state.player.depth > 0 ? "Apenas na superfície (0m)" : "Acessar Loja"}
                 >
-                    <Store size={14} /> LOJA {state.player.depth > 0 && <span>(SUPERFÍCIE APENAS)</span>}
+                    <Store size={14} /> LOJA
+                </button>
+
+                <button
+                    onClick={() => setShowMarket(true)}
+                    className="col-span-2 bg-yellow-900/40 hover:bg-yellow-900/60 p-2 rounded-lg text-xs font-bold border border-yellow-700/50 text-yellow-500 flex items-center justify-center gap-2 transition"
+                    title="Mercado Negro (Jogadores)"
+                >
+                    <span className="text-[10px]">⚖️</span> MERCADO
                 </button>
             </div>
 
@@ -274,6 +284,7 @@ export default function StatusPanel() {
             {showCrafting && <CraftingPanel onClose={() => setShowCrafting(false)} />}
             {showBook && <RelicBookModal onClose={() => setShowBook(false)} />}
             {showOutpost && <OutpostModal onClose={() => setShowOutpost(false)} />}
+            {showMarket && <MarketPanel onClose={() => setShowMarket(false)} />}
         </div>
     );
 }

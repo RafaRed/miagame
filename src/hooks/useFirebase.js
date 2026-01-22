@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { googleProvider } from '../lib/firebase';
-import { ref, set, onValue, serverTimestamp, onDisconnect } from "firebase/database";
+import { ref, set, onValue, serverTimestamp, onDisconnect, push } from "firebase/database";
 import { useGameState } from '../context/GameContext';
 
 export function useFirebase() {
@@ -149,5 +149,55 @@ export function useFirebase() {
 
     const logout = () => signOut(auth);
 
-    return { user, loading, loginWithGoogle, logout, sendToDuo };
+    const listMarketItem = async (item, price) => {
+        if (!user) return;
+        const marketRef = ref(db, 'public/market');
+        await set(push(marketRef), {
+            sellerId: user.uid,
+            sellerName: state.player.name,
+            item: item,
+            price: price,
+            timestamp: serverTimestamp()
+        });
+    };
+
+    const buyMarketItem = async (listingId, listing) => {
+        if (!user) return;
+        // 1. Remove Listing (First come first serve)
+        // Using a transaction would be better but simple set(null) is okay for prototype
+        try {
+            await set(ref(db, `public/market/${listingId}`), null);
+
+            // 2. Send Geld to Seller Inbox
+            const inboxRef = ref(db, `public/players/${listing.sellerId}/inbox`);
+            await set(push(inboxRef), {
+                type: 'MARKET_SALE',
+                item: listing.item,
+                price: listing.price,
+                buyer: state.player.name,
+                timestamp: serverTimestamp()
+            });
+
+            // 3. Dispatch local BUY (Must be handled by caller or here?)
+            // Caller (UI) handles local state (deduct gold, add item)
+            // But we should confirm success first.
+            return true;
+        } catch (e) {
+            console.error("Buy Error:", e);
+            return false;
+        }
+    };
+
+    const cancelMarketListing = async (listingId) => {
+        if (!user) return;
+        try {
+            await set(ref(db, `public/market/${listingId}`), null);
+            return true;
+        } catch (e) {
+            console.error("Cancel Listing Error:", e);
+            return false;
+        }
+    };
+
+    return { user, loading, loginWithGoogle, logout, sendToDuo, listMarketItem, buyMarketItem, cancelMarketListing };
 }
