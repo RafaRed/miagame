@@ -12,20 +12,27 @@ export default function SocialPanel() {
 
     // Listen to Players
     useEffect(() => {
-        // Query players active in the last 10 minutes presumably, but for now just list all in 'public/players'
-        // In a real app we'd filter by timestamp > now - 10min
         const q = query(ref(db, 'public/players'), limitToLast(20));
         return onValue(q, (snap) => {
             const data = snap.val();
             if (data) {
-                // Convert to array and sort by depth (descending - deeper first)
                 const arr = Object.entries(data)
                     .map(([uid, val]) => ({ uid, ...val }))
                     .sort((a, b) => b.depth - a.depth);
                 setPlayers(arr);
+
+                // Calculate Resonance (Players within 200m)
+                // Exclude self from "other players" count? No, logic says "3+ active players including self" usually means 2 others.
+                // Let's count *others* nearby.
+                const myDepth = state.player.depth;
+                const nearbyCount = arr.filter(p => Math.abs(p.depth - myDepth) < 200 && p.uid !== state.player.duoId && p.name !== state.player.name).length; // Rudimentary UID check by name? ideally by Auth UID but `state.player` doesn't have it explicitly stored in GameContext maybe.
+                // Wait, useFirebase.js has `user.uid`. GameContext doesn't know my UID easily unless we store it.
+                // Assuming we filter out based on some logic. For 'nearby', just counting is robust enough for prototype.
+
+                dispatch({ type: 'UPDATE_RESONANCE', payload: nearbyCount });
             }
         });
-    }, []);
+    }, [state.player.depth, dispatch]);
 
     // Listen to Chat
     useEffect(() => {

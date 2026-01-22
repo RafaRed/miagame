@@ -52,6 +52,7 @@ const initialState = {
         forecast: [],
         isTransformed: false,
         vengeance: false,
+        resonance: 0, // Number of nearby players
     },
 };
 
@@ -250,6 +251,13 @@ function gameReducer(state, action) {
                 if (m.name.includes('Devorador')) minionGold += 10;
             });
 
+            // Resonance Bonus (3+ players close = 30% Hunger Reduction)
+            // Note: resonance count describes "other" players. So resonance >= 2 means 3 total.
+            let hungerReduction = 0;
+            if (state.status.resonance >= 2) {
+                hungerReduction = 0.3;
+            }
+
             // Outpost Mining Logic
             let newOutposts = { ...(state.outposts || {}) };
             let outpostChanged = false;
@@ -270,11 +278,11 @@ function gameReducer(state, action) {
 
             // Transformation Hunger
             let hungerDrain = 0;
-            // Check state.status.isTransformed ?
-            // Need to verify where isTransformed lives. state.status.isTransformed.
             if (state.status.isTransformed) {
                 hungerDrain = 5;
             }
+            // Apply Reductions
+            hungerDrain = hungerDrain * (1 - hungerReduction);
 
             const currentHunger = state.player.hunger;
             const nextHunger = Math.max(0, currentHunger - hungerDrain);
@@ -330,6 +338,12 @@ function gameReducer(state, action) {
             return {
                 ...state,
                 status: { ...state.status, logs: [action.payload, ...(state.status.logs || [])].slice(0, 50) }
+            };
+
+        case 'UPDATE_RESONANCE':
+            return {
+                ...state,
+                status: { ...state.status, resonance: action.payload }
             };
 
         case 'LOOT_FOUND':

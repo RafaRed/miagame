@@ -112,6 +112,18 @@ export default function VisualPanel() {
                 </div>
             </div>
 
+            {/* Resonance HUD */}
+            {state.status.resonance > 0 && (
+                <div className={`absolute top-4 right-4 z-10 flex flex-col items-center pointer-events-none transition-opacity duration-1000 ${state.status.resonance >= 2 ? 'opacity-100' : 'opacity-50'}`}>
+                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center bg-black/40 backdrop-blur-md ${state.status.resonance >= 2 ? 'border-amber-400 text-amber-400 animate-pulse shadow-[0_0_15px_rgba(251,191,36,0.5)]' : 'border-slate-500 text-slate-500'}`}>
+                        <span className="text-xs font-bold">{state.status.resonance}</span>
+                    </div>
+                    <span className={`text-[8px] uppercase tracking-widest mt-1 font-bold ${state.status.resonance >= 2 ? 'text-amber-400' : 'text-slate-500'}`}>
+                        {state.status.resonance >= 2 ? 'Ressonância' : 'Proximidade'}
+                    </span>
+                </div>
+            )}
+
             {/* Duo HUD (Haku / Bond) */}
             {state.player.duoState && (
                 <div className={`absolute top-24 left-4 z-10 w-48 bg-black/40 backdrop-blur-md rounded border p-2 transition-all ${state.status.vengeance ? 'border-red-500 animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 'border-indigo-500/30'}`}>
