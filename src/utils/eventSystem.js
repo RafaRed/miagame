@@ -4,10 +4,19 @@ import { MONSTERS, ITEMS, NPCS } from '../lib/constants'; // Added NPCS import
 export function generateEvent(depth) {
     const chance = Math.random();
 
-    // 10% Monster Encounter (Reduced for chill flow)
-    if (chance < 0.1) {
-        // Filter monsters by power/depth (simplified for now)
-        const monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    // 15% Monster Encounter (Increased for risk)
+    if (chance < 0.15) {
+        // Filter monsters by power/depth
+        let validMonsters = MONSTERS;
+        if (depth < 1350) validMonsters = MONSTERS.filter(m => m.power <= 40); // Layer 1
+        else if (depth < 2600) validMonsters = MONSTERS.filter(m => m.power >= 30 && m.power <= 80); // Layer 2
+        else if (depth < 7000) validMonsters = MONSTERS.filter(m => m.power >= 50 && m.power <= 150); // Layer 3
+        else validMonsters = MONSTERS.filter(m => m.power >= 100); // Deep layers
+
+        // Fallback default if filter fails
+        if (validMonsters.length === 0) validMonsters = [MONSTERS[0]];
+
+        const monster = validMonsters[Math.floor(Math.random() * validMonsters.length)];
         return {
             type: 'COMBAT',
             data: monster,

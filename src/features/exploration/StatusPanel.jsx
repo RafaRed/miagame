@@ -101,6 +101,13 @@ export default function StatusPanel() {
         }
     };
 
+    // Calculate Dynamic Power
+    const weaponAtk = state.equipment.weapon?.effect?.atk || 0;
+    const charmAtk = state.equipment.charm?.effect?.atk || 0;
+    const charmStr = state.equipment.charm?.effect?.str || 0;
+    const baseAtk = state.player.baseAtk || 5;
+    const totalPower = baseAtk + weaponAtk + charmAtk + (charmStr * 2);
+
     return (
         <div className="flex flex-col h-full">
             {/* Player Info */}
@@ -143,7 +150,7 @@ export default function StatusPanel() {
                 <div className="grid grid-cols-2 gap-2 pt-2 mt-1">
                     <div className="bg-slate-900 p-2 rounded text-center border border-slate-800">
                         <span className="block text-slate-500 text-[10px] uppercase">Poder</span>
-                        <span className="font-bold text-slate-200 text-sm">10 CP</span>
+                        <span className="font-bold text-slate-200 text-sm">{totalPower} CP</span>
                     </div>
                     <div className="bg-slate-900 p-2 rounded text-center border border-slate-800">
                         <span className="block text-slate-500 text-[10px] uppercase">Orth</span>

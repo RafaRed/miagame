@@ -76,10 +76,25 @@ export default function EventModal() {
                     )}
 
                     <button
-                        onClick={handleClose}
+                        onClick={() => {
+                            if (event.type === 'COMBAT') {
+                                // Risky flee
+                                if (Math.random() > 0.4) { // 60% chance to fail
+                                    dispatch({ type: 'ADD_LOG', payload: 'Falha ao fugir! O inimigo bloqueia o caminho.' });
+                                    dispatch({ type: 'COMBAT_START', payload: event.data });
+                                    dispatch({ type: 'TAKE_DAMAGE', payload: Math.floor(event.data.power * 0.5) }); // Free hit penalty
+                                } else {
+                                    // Success - use COMBAT_FLEE to apply hunger penalty
+                                    dispatch({ type: 'COMBAT_FLEE' });
+                                    // Event cleared by reducer
+                                }
+                            } else {
+                                handleClose();
+                            }
+                        }}
                         className="bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-2 px-6 rounded transition border border-slate-700"
                     >
-                        {event.type === 'COMBAT' ? 'FUGIR' : event.type === 'INTERACTION' ? 'SAIR' : 'IGNORAR'}
+                        {event.type === 'COMBAT' ? 'TENTAR FUGIR' : event.type === 'INTERACTION' ? 'SAIR' : 'IGNORAR'}
                     </button>
                 </div>
             </div>

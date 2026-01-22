@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { ITEMS } from '../lib/constants';
 
 // Initial State
 const initialState = {
@@ -12,6 +13,7 @@ const initialState = {
         maxHunger: 100,
         xp: 0,
         level: 1,
+        baseAtk: 5,
         canAscend: true,
     },
     resources: {
@@ -260,25 +262,22 @@ function gameReducer(state, action) {
             // Grant Rewards
             let msg = "Troca realizada.";
             if (reward.type === 'buff_str') {
-                // Assuming stats struct or simple damage mod. For now adding to a hidden stat or base power if exists.
-                // MIA prototype used weapon damage. I'll add a 'baseAtk' to player or just log it for now.
-                // Actually, let's update a new 'stats' object in player.
                 updates.baseAtk = (updates.baseAtk || 0) + reward.val;
-                msg = "Você se sente mais forte.";
+                msg = `Treino Brutal! Atk Base +${reward.val}.`;
             }
             if (reward.type === 'item') {
                 inventory = addToStack(inventory, reward.id, 1);
-                msg = "Item recebido.";
+                const rItem = ITEMS.find(i => i.id === reward.id);
+                msg = `Você recebeu: ${rItem ? rItem.name : reward.id}.`;
             }
             if (reward.type === 'restore_all') {
                 updates.hp = updates.maxHp;
                 updates.hunger = updates.maxHunger;
-                msg = "Vigor restaurado.";
+                msg = "Delicioso! Vida e Fome totalmente restaurados.";
             }
             if (reward.type === 'reveal_map') {
-                // Feature to implement later, for now just log
-                msg = "Segredos do abismo revelados (Bônus de XP).";
-                updates.xp += 1000;
+                msg = "O Abismo faz mais sentido agora. +1000 XP.";
+                updates.xp = (updates.xp || 0) + 1000;
             }
 
             return {
@@ -457,16 +456,70 @@ function gameReducer(state, action) {
             };
 
         case 'COMBAT_WIN':
+            const winMonster = state.status.currentMonster;
+            let winInv = [...state.inventory];
+            let winGold = state.resources.gold + (winMonster.power || 10);
+            let winLog = [`Vitória! +${winMonster.power} Orth.`];
+
+            // XP Logic
+            const xpGain = (winMonster.power || 10) * 5;
+            let newXp = (state.player.xp || 0) + xpGain;
+            let newLevel = state.player.level || 1;
+            // Simple Level Up: Level * 1000 XP needed
+            if (newXp >= newLevel * 1000) {
+                newXp -= newLevel * 1000;
+                newLevel++;
+                winLog.push(`LEVEL UP! Nível ${newLevel} alcançado! (+HP/Atk)`);
+            }
+
+            // Drop Logic
+            if (winMonster.drops && winMonster.drops.length > 0) {
+                // 50% chance for extra drop
+                winMonster.drops.forEach(dropId => {
+                    if (Math.random() > 0.5) {
+                        winInv = addToStack(winInv, dropId, 1);
+                        // Get Name
+                        const dItem = ITEMS.find(i => i.id === dropId) || {};
+                        winLog.push(`Encontrou: ${dItem.name || dropId}`);
+                    }
+                });
+            }
+
             return {
                 ...state,
-                status: { ...state.status, inCombat: false, currentMonster: null, currentEvent: null },
-                resources: { ...state.resources, gold: state.resources.gold + (action.payload.gold || 0) },
+                player: {
+                    ...state.player,
+                    xp: newXp,
+                    level: newLevel,
+                    maxHp: state.player.maxHp + (newLevel > (state.player.level || 1) ? 10 : 0),
+                    baseAtk: (state.player.baseAtk || 0) + (newLevel > (state.player.level || 1) ? 2 : 0)
+                },
+                inventory: winInv,
+                resources: { ...state.resources, gold: winGold },
+                status: {
+                    ...state.status,
+                    inCombat: false,
+                    currentMonster: null,
+                    currentEvent: null,
+                    logs: [...winLog, ...(state.status.logs || [])].slice(0, 50)
+                }
             };
 
         case 'COMBAT_FLEE':
+            const fleeCost = 20;
+            const newHungerFlee = Math.max(0, state.player.hunger - fleeCost);
+            const fleeMsg = newHungerFlee === 0 ? "Você fugiu... mas está faminto." : "Fugir custou muita energia.";
             return {
                 ...state,
-                status: { ...state.status, inCombat: false, currentMonster: null, currentEvent: null, combatLog: [] }
+                player: { ...state.player, hunger: newHungerFlee },
+                status: {
+                    ...state.status,
+                    inCombat: false,
+                    currentMonster: null,
+                    currentEvent: null,
+                    combatLog: [],
+                    logs: [fleeMsg, ...(state.status.logs || [])].slice(0, 50)
+                }
             };
 
         case 'RESPAWN':
