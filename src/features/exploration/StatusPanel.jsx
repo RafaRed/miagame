@@ -5,20 +5,23 @@ import ShopPanel from '../tycoon/ShopPanel';
 import CraftingPanel from '../inventory/CraftingPanel';
 import { generateEvent } from '../../utils/eventSystem';
 
-const ProgressBar = ({ value, max, color, label, icon }) => (
-    <div className="mb-2">
-        <div className="flex justify-between text-[10px] mb-1 font-bold uppercase tracking-wider">
-            <span className={`${color} flex items-center gap-1`}>{icon} {label}</span>
-            <span className="text-slate-400">{Math.ceil(value)}/{max}</span>
+const ProgressBar = ({ value, max, color, label, icon }) => {
+    const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+    return (
+        <div className="mb-2">
+            <div className="flex justify-between text-[10px] mb-1 font-bold uppercase tracking-wider">
+                <span className={`${color} flex items-center gap-1`}>{icon} {label}</span>
+                <span className="text-slate-400">{Math.ceil(value)}/{max}</span>
+            </div>
+            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden shadow-inner border border-slate-900 relative">
+                <div
+                    className={`h-full transition-all duration-300 ${label === 'Saúde' ? 'bg-rose-600' : 'bg-amber-500'} shadow-[0_0_10px_currentColor]`}
+                    style={{ width: `${percentage}%` }}
+                ></div>
+            </div>
         </div>
-        <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden shadow-inner">
-            <div
-                className={`h-full transition-all duration-300 ${color.replace('text-', 'bg-')}`}
-                style={{ width: `${Math.min(100, (value / max) * 100)}%` }}
-            ></div>
-        </div>
-    </div>
-);
+    );
+};
 
 export default function StatusPanel() {
     const { state, dispatch } = useGameState();
@@ -123,8 +126,8 @@ export default function StatusPanel() {
                     onClick={() => setShowShop(true)}
                     disabled={state.player.depth > 0}
                     className={`col-span-2 p-2 rounded-lg text-xs font-bold border-b-4 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2 ${state.player.depth > 0
-                            ? 'bg-slate-800 text-slate-500 border-slate-900 cursor-not-allowed opacity-50'
-                            : 'bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-950'
+                        ? 'bg-slate-800 text-slate-500 border-slate-900 cursor-not-allowed opacity-50'
+                        : 'bg-amber-800 hover:bg-amber-700 text-amber-100 border-amber-950'
                         }`}
                     title={state.player.depth > 0 ? "Apenas na superfície (0m)" : "Acessar Loja"}
                 >

@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import { useGameState } from '../../context/GameContext';
-import { ShoppingBag, Pickaxe, Battery, Zap, ArrowUpCircle, Coins, Package } from 'lucide-react';
+import {
+    ShoppingBag, Pickaxe, Battery, Zap, ArrowUpCircle, Coins, Package,
+    Cog, Wind, Bone, Hexagon, Cross, Drumstick, Utensils, Box, Shapes, Sun, Hammer, Compass, Gavel
+} from 'lucide-react';
 import { ITEMS } from '../../lib/constants';
+
+const IconMap = {
+    'cog': Cog, 'wind': Wind, 'bone': Bone, 'bread-slice': Hexagon, 'first-aid': Cross,
+    'drumstick': Drumstick, 'utensils': Utensils, 'box': Box, 'shapes': Shapes, 'sun': Sun,
+    'hammer': Hammer, 'compass': Compass, 'gavel': Gavel
+};
 
 const UPGRADES = [
     { id: 'excavator', name: 'Escavadeira', icon: Pickaxe, desc: 'Gera Ouro e Pó passivamente.', basePrice: 500, multiplier: 250 },
@@ -55,27 +64,29 @@ export default function ShopPanel({ onClose }) {
             <div className="flex-1 overflow-y-auto p-4">
                 {tab === 'supplies' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {ITEMS.filter(i => i.type === 'consumable' || i.type === 'equip').map(item => (
-                            <div key={item.id} className="bg-slate-800 p-3 rounded border border-slate-600 flex justify-between items-center group hover:border-relic-gold transition">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded bg-slate-900 flex items-center justify-center ${item.color}`}>
-                                        {/* Icon place holder */}
-                                        <div className="font-bold text-lg">?</div>
+                        {ITEMS.filter(i => i.type === 'consumable' || i.type === 'equip').map(item => {
+                            const Icon = IconMap[item.icon] || Box;
+                            return (
+                                <div key={item.id} className="bg-slate-800 p-3 rounded border border-slate-600 flex justify-between items-center group hover:border-relic-gold transition relative overflow-hidden">
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <div className={`w-10 h-10 rounded bg-slate-900 flex items-center justify-center ${item.color} shadow-lg`}>
+                                            <Icon size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-200 text-sm">{item.name}</p>
+                                            <p className="text-[10px] text-slate-400 max-w-[120px] leading-tight">{item.desc}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-slate-200">{item.name}</p>
-                                        <p className="text-[10px] text-slate-400">{item.desc}</p>
-                                    </div>
+                                    <button
+                                        onClick={() => buyItem(item)}
+                                        className="bg-slate-700 hover:bg-relic-gold hover:text-black py-1 px-3 rounded text-xs font-mono font-bold transition disabled:opacity-50 relative z-10"
+                                        disabled={state.resources.gold < item.price}
+                                    >
+                                        {item.price} O
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => buyItem(item)}
-                                    className="bg-slate-700 hover:bg-relic-gold hover:text-black py-1 px-3 rounded text-xs font-mono font-bold transition disabled:opacity-50"
-                                    disabled={state.resources.gold < item.price}
-                                >
-                                    {item.price} O
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -112,18 +123,21 @@ export default function ShopPanel({ onClose }) {
                 )}
 
                 {tab === 'sell' && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                         {state.inventory.map((itemId, idx) => {
                             const item = ITEMS.find(i => i.id === itemId);
+                            const Icon = item ? (IconMap[item.icon] || Box) : Box;
                             return (
                                 <button
                                     key={idx}
                                     onClick={() => sellItem(idx)}
-                                    className="bg-slate-800 p-2 rounded border border-slate-700 hover:red-900 hover:border-red-500 flex flex-col items-center gap-2 group transition"
+                                    className="bg-slate-800 p-2 rounded border border-slate-700 hover:bg-slate-700 hover:border-red-400 flex flex-col items-center gap-1 group transition relative"
                                 >
-                                    <span className={`${item?.color} text-2xl group-hover:scale-110 transition`}>•</span>
-                                    <span className="text-xs font-bold truncate w-full text-center">{item?.name}</span>
-                                    <span className="text-[10px] text-green-400">+{Math.floor((item?.price || 0) * 0.5)} O</span>
+                                    <div className={`${item?.color || 'text-slate-500'} p-2 rounded bg-slate-900/50 group-hover:bg-slate-900 transition`}>
+                                        <Icon size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-bold truncate w-full text-center text-slate-300">{item?.name || 'Desconhecido'}</span>
+                                    <span className="text-[10px] text-green-400 bg-green-900/20 px-1 rounded font-mono">+{Math.floor((item?.price || 0) * 0.5)} O</span>
                                 </button>
                             );
                         })}
