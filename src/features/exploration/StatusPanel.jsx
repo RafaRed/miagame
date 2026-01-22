@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useGameState } from '../../context/GameContext';
-import { ArrowDown, ArrowUp, Hammer, Store, Book } from 'lucide-react';
+import { ArrowDown, ArrowUp, Hammer, Store, Book, Skull } from 'lucide-react';
 import ShopPanel from '../tycoon/ShopPanel';
 import CraftingPanel from '../inventory/CraftingPanel';
 import RelicBookModal from '../encyclopedia/RelicBookModal';
+import OutpostModal from '../tycoon/OutpostModal';
 import { generateEvent } from '../../utils/eventSystem';
 
 const ProgressBar = ({ value, max, color, label, icon }) => {
@@ -32,6 +33,7 @@ export default function StatusPanel() {
     const [showShop, setShowShop] = useState(false);
     const [showCrafting, setShowCrafting] = useState(false);
     const [showBook, setShowBook] = useState(false);
+    const [showOutpost, setShowOutpost] = useState(false);
 
     const handleStartEdit = () => {
         setTempName(state.player.name);
@@ -159,23 +161,77 @@ export default function StatusPanel() {
                 </div>
             </div>
 
-            {/* Tycoon Summary */}
+            {/* Outpost Section */}
             <div className="mb-4 bg-slate-800/50 rounded-lg p-3 border border-indigo-900/30">
-                <h4 className="text-[10px] uppercase font-bold text-indigo-400 mb-2">Base Tycoon</h4>
-                <div className="text-xs space-y-1 text-slate-400">
-                    <div className="flex justify-between">
-                        <span>Escavadeiras</span>
-                        <span className="text-white">{state.machines.excavator}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Refinarias</span>
-                        <span className="text-white">{state.machines.refinery}</span>
+                <h4 className="text-[10px] uppercase font-bold text-indigo-400 mb-2">Entreposto Local ({Math.floor(state.player.depth)}m)</h4>
+                {(() => {
+                    const depthKey = Math.floor(state.player.depth);
+                    const currentOutpost = state.outposts ? state.outposts[depthKey] : null;
+                    const hasKit = state.inventory.some(i => i.id === 'outpost_kit');
+                    // Allow building if Deep Enough OR simply if you have the Kit (Red Whistle 0m? No, Blue Whistle 1350+)
+                    // User plan said Blue Whistle 1351+.
+                    const isDeepEnough = state.player.depth > 1350;
+                    const canBuild = isDeepEnough && hasKit && !currentOutpost;
+
+                    if (currentOutpost) {
+                        return (
+                            <button
+                                onClick={() => setShowOutpost(true)}
+                                className="w-full bg-indigo-700 hover:bg-indigo-600 text-xs py-2 rounded text-white font-bold flex items-center justify-center gap-2"
+                            >
+                                <Store size={12} /> ACESSAR BASE
+                            </button>
+                        );
+                    }
+
+                    return (
+                        <button
+                            onClick={() => {
+                                if (canBuild) dispatch({ type: 'DEPLOY_OUTPOST' });
+                            }}
+                            disabled={!canBuild}
+                            className={`w-full text-[10px] py-3 rounded font-bold border border-dashed transition ${canBuild
+                                ? 'bg-indigo-900/50 hover:bg-indigo-900 text-indigo-200 border-indigo-500'
+                                : 'bg-transparent text-slate-600 border-slate-700 cursor-not-allowed'}`}
+                        >
+                            {!isDeepEnough ? "Zona Insegura (Requer >1350m)" : (hasKit ? "Construir Base (1 Kit)" : "Requer Kit de Entreposto")}
+                        </button>
+                    );
+                })()}
+            </div>
+
+            {/* Forecast (Abyss Gaze) */}
+            {state.status.forecast && state.status.forecast.length > 0 && (
+                <div className="mb-4 bg-purple-900/20 rounded-lg p-3 border border-purple-500/30">
+                    <h4 className="text-[10px] uppercase font-bold text-purple-400 mb-2 flex items-center gap-2">
+                        <Book size={10} className="text-purple-400" /> Visão do Abismo
+                    </h4>
+                    <div className="space-y-1">
+                        {state.status.forecast.slice(0, 3).map((evt, i) => (
+                            <div key={i} className="flex justify-between text-xs text-slate-300 border-b border-purple-900/30 pb-1 last:border-0">
+                                <span className="font-mono text-purple-300">{evt.depth}m</span>
+                                <span className={evt.type === 'COMBAT' ? 'text-red-400 font-bold' : 'text-emerald-400'}>
+                                    {evt.type === 'COMBAT' ? 'PERIGO' : (evt.type === 'LOOT' ? 'Tesouro' : 'Evento')}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Actions */}
             <div className="mt-auto grid grid-cols-4 gap-2">
+                {state.inventory.some(i => i.id === 'cradle_of_greed') && (
+                    <button
+                        onClick={() => dispatch({ type: 'TOGGLE_TRANSFORMATION' })}
+                        className={`col-span-4 p-2 rounded-lg font-bold border-b-4 active:border-b-0 active:translate-y-1 transition text-white flex items-center justify-center gap-2 ${state.status.isTransformed
+                                ? 'bg-red-600 border-red-800 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]'
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-900'
+                            }`}
+                    >
+                        <Skull size={16} /> {state.status.isTransformed ? "REVERTER FORMA" : "MANIFESTAR MALDIÇÃO"}
+                    </button>
+                )}
                 <button
                     onClick={handleDescend}
                     className="col-span-4 bg-gradient-to-r from-blue-800 to-indigo-900 hover:from-blue-700 hover:to-indigo-800 p-3 rounded-lg font-bold shadow-lg border-b-4 border-indigo-950 active:border-b-0 active:translate-y-1 transition group relative overflow-hidden flex items-center justify-center gap-2 text-white"
@@ -217,6 +273,7 @@ export default function StatusPanel() {
             {showShop && <ShopPanel onClose={() => setShowShop(false)} />}
             {showCrafting && <CraftingPanel onClose={() => setShowCrafting(false)} />}
             {showBook && <RelicBookModal onClose={() => setShowBook(false)} />}
+            {showOutpost && <OutpostModal onClose={() => setShowOutpost(false)} />}
         </div>
     );
 }

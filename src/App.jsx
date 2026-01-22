@@ -16,7 +16,7 @@ import DeathModal from './features/exploration/DeathModal';
 function GameContent() {
   // Initialize hooks inside Provider
   useGameLoop();
-  const { user, loading, loginWithGoogle } = useFirebase();
+  const { user, loading, loginWithGoogle, sendToDuo } = useFirebase(); // Destructure sendToDuo
 
   if (loading) return <div className="h-screen bg-abyss-950 flex items-center justify-center text-relic-gold font-mono animate-pulse">Carregando Abismo...</div>;
 
@@ -28,7 +28,7 @@ function GameContent() {
     <>
       <GameLayout
         leftPanel={<StatusPanel />}
-        centerPanel={<VisualPanel />}
+        centerPanel={<VisualPanel sendToDuo={sendToDuo} />}
         rightPanel={<SocialPanel />}
       />
       <EventModal />

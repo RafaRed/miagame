@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useGameState } from '../../context/GameContext';
 import {
     Hammer, Backpack, Utensils,
-    Cog, Wind, Bone, Hexagon, Cross, Drumstick, Box, Shapes, Sun, Compass, Gavel
+    Cog, Wind, Bone, Hexagon, Cross, Drumstick, Box, Shapes, Sun, Compass, Gavel,
+    Flame, Tent, Bot, Wifi, Skull, Eye, Soup
 } from 'lucide-react';
 import { ITEMS, RECIPES } from '../../lib/constants';
 
 const IconMap = {
     'cog': Cog, 'wind': Wind, 'bone': Bone, 'bread-slice': Hexagon, 'first-aid': Cross,
     'drumstick': Drumstick, 'utensils': Utensils, 'box': Box, 'shapes': Shapes, 'sun': Sun,
-    'hammer': Hammer, 'compass': Compass, 'gavel': Gavel, 'heart': Utensils, 'triangle': Shapes, 'zap': Wind
+    'hammer': Hammer, 'compass': Compass, 'gavel': Gavel, 'heart': Utensils, 'triangle': Shapes, 'zap': Wind,
+    'flame': Flame, 'tent': Tent, 'bot': Bot, 'wifi': Wifi, 'skull': Skull, 'eye': Eye, 'soup': Soup
 };
 
 export default function CraftingPanel({ onClose }) {
@@ -17,6 +19,13 @@ export default function CraftingPanel({ onClose }) {
     const [tab, setTab] = useState('inventory');
 
     const canCraft = (recipe) => {
+        // Check Tool
+        if (recipe.tool) {
+            const hasTool = state.inventory.some(i => i.id === recipe.tool);
+            if (!hasTool) return false;
+        }
+
+        // Check Materials
         const counts = {};
         state.inventory.forEach(item => {
             const id = typeof item === 'string' ? item : item.id;
@@ -134,15 +143,22 @@ export default function CraftingPanel({ onClose }) {
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-slate-200">{resItem?.name}</h4>
-                                            <div className="flex gap-2 text-[10px] text-slate-400 mt-1">
-                                                {Object.entries(recipe.req).map(([reqId, count]) => {
-                                                    const reqItem = ITEMS.find(it => it.id === reqId);
-                                                    return (
-                                                        <span key={reqId} className="bg-slate-900 px-1 rounded border border-slate-700">
-                                                            {count}x {reqItem?.name}
-                                                        </span>
-                                                    );
-                                                })}
+                                            <div className="flex flex-col">
+                                                <div className="flex gap-2 text-[10px] text-slate-400 mt-1 flex-wrap">
+                                                    {Object.entries(recipe.req).map(([reqId, count]) => {
+                                                        const reqItem = ITEMS.find(it => it.id === reqId);
+                                                        return (
+                                                            <span key={reqId} className="bg-slate-900 px-1 rounded border border-slate-700">
+                                                                {count}x {reqItem?.name}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {recipe.tool && (
+                                                    <span className={`text-[10px] mt-1 ${state.inventory.some(i => i.id === recipe.tool) ? 'text-emerald-400' : 'text-red-400 font-bold'}`}>
+                                                        Requer: {ITEMS.find(i => i.id === recipe.tool)?.name}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

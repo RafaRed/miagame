@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { ITEMS } from '../lib/constants';
+import { generateEvent } from '../utils/eventSystem';
 
 // Initial State
 const initialState = {
@@ -15,6 +16,8 @@ const initialState = {
         level: 1,
         baseAtk: 5,
         canAscend: true,
+        duoId: null, // Partner UID
+        duoState: null, // { hp, hunger, depth } of partner
     },
     resources: {
         gold: 100,
@@ -46,6 +49,9 @@ const initialState = {
         combatLog: [],
         curseIntensity: 0,
         logs: ["Bem-vindo a Orth. Construa sua reputação e explore o desconhecido."],
+        forecast: [],
+        isTransformed: false,
+        vengeance: false,
     },
 };
 
@@ -80,9 +86,18 @@ function gameReducer(state, action) {
             return { ...state, player: { ...state.player, name: action.payload } };
 
         case 'DESCEND': {
-            const cost = action.payload.cost || 2;
+            // Artifact Mods
+            let descendMod = 0;
+            state.inventory.forEach(s => {
+                const i = ITEMS.find(x => x.id === s.id);
+                if (i?.type === 'artifact' && i.effect?.descendCost) descendMod += i.effect.descendCost * s.count;
+            });
+
+            const baseCost = action.payload.cost || 2;
+            const finalCost = Math.max(0, baseCost + descendMod);
+
             const currentHunger = state.player.hunger;
-            let newHunger = currentHunger - cost;
+            let newHunger = currentHunger - finalCost;
             let hpPenalty = 0;
             let newLogs = state.status.logs || [];
 
@@ -93,6 +108,30 @@ function gameReducer(state, action) {
             }
 
             const newHp = Math.max(0, state.player.hp - hpPenalty);
+
+            // Forecast Logic
+            let newForecast = state.status.forecast ? [...state.status.forecast] : [];
+            const hasDeepEyes = state.inventory.some(i => i.id === 'deep_eyes');
+
+            if (newForecast.length > 0) {
+                newForecast.shift();
+            }
+
+            if (hasDeepEyes) {
+                const currentDepth = state.player.depth + action.payload.amount;
+                while (newForecast.length < 5) {
+                    // Look ahead 50m steps
+                    // If we have items, look ahead from last item
+                    // If not, look ahead from current
+                    const lastDepth = newForecast.length > 0 ? newForecast[newForecast.length - 1].depth : currentDepth;
+                    const nextDepth = lastDepth + 50;
+
+                    const evt = generateEvent(nextDepth);
+                    newForecast.push({ ...evt, depth: nextDepth });
+                }
+            } else {
+                newForecast = [];
+            }
 
             return {
                 ...state,
@@ -106,20 +145,34 @@ function gameReducer(state, action) {
                 status: {
                     ...state.status,
                     isDead: newHp <= 0,
-                    logs: newHp < state.player.hp ? newLogs : state.status.logs
+                    logs: newHp < state.player.hp ? newLogs : state.status.logs,
+                    forecast: newForecast
                 }
             };
         }
 
         case 'ASCEND': {
-            const cost = action.payload.cost || 2;
+            if (state.status.isTransformed) {
+                return { ...state, status: { ...state.status, logs: ["Sua forma amaldiçoada é pesada demais para subir.", ...(state.status.logs || [])] } };
+            }
+
+            // Artifact Mods
+            let climbMod = 0;
+            state.inventory.forEach(s => {
+                const i = ITEMS.find(x => x.id === s.id);
+                if (i?.type === 'artifact' && i.effect?.climbCost) climbMod += i.effect.climbCost * s.count;
+            });
+
+            const baseCost = action.payload.cost || 2;
+            const finalCost = Math.max(0, baseCost + climbMod);
+
             const currentHunger = state.player.hunger;
-            let newHunger = currentHunger - cost;
+            let newHunger = currentHunger - finalCost;
             let hpPenalty = 0;
             let newLogs = state.status.logs || [];
 
             if (newHunger < 0) {
-                hpPenalty = Math.abs(newHunger) * 3; // Climbing while starving is harder
+                hpPenalty = Math.abs(newHunger) * 3;
                 newHunger = 0;
                 newLogs = ["A subida exige energia! Você está morrendo de fome.", ...newLogs].slice(0, 50);
             }
@@ -137,7 +190,7 @@ function gameReducer(state, action) {
                 status: {
                     ...state.status,
                     isDead: newHp <= 0,
-                    curseIntensity: 100, // Trigger full visual curse
+                    curseIntensity: 100,
                     logs: newHp < state.player.hp ? newLogs : state.status.logs
                 }
             };
@@ -176,9 +229,101 @@ function gameReducer(state, action) {
             };
 
         case 'TICK_PASSIVE':
+            // Calculate Passive Effects (Regen)
+            let passiveRegen = 0;
+            state.inventory.forEach(slot => {
+                const item = ITEMS.find(i => i.id === slot.id);
+                if (item && item.type === 'artifact' && item.effect?.regen) {
+                    passiveRegen += item.effect.regen * slot.count;
+                }
+            });
+
+            // Apply Regen
+            const tickHp = Math.min(state.player.maxHp, state.player.hp + passiveRegen);
+
+            // Minion Bonus
+            let minionGold = 0;
+            const tamedList = state.stats.tamedMonsters || [];
+            tamedList.forEach(m => {
+                if (m.name.includes('Bico')) minionGold += 1;
+                if (m.name.includes('Serpente')) minionGold += 2;
+                if (m.name.includes('Devorador')) minionGold += 10;
+            });
+
+            // Outpost Mining Logic
+            let newOutposts = { ...(state.outposts || {}) };
+            let outpostChanged = false;
+            Object.keys(newOutposts).forEach(key => {
+                const op = { ...newOutposts[key] };
+                if (op.automaton && op.fuel > 0) {
+                    op.fuel = Math.max(0, op.fuel - 1);
+                    // 20% chance to find loot
+                    if (Math.random() < 0.2) {
+                        const lootOpts = ['stone', 'scrap', 'monster_bone', 'abyss_dust'];
+                        const lootId = lootOpts[Math.floor(Math.random() * lootOpts.length)];
+                        op.storage = addToStack(op.storage || [], lootId, 1);
+                    }
+                    newOutposts[key] = op;
+                    outpostChanged = true;
+                }
+            });
+
+            // Transformation Hunger
+            let hungerDrain = 0;
+            // Check state.status.isTransformed ?
+            // Need to verify where isTransformed lives. state.status.isTransformed.
+            if (state.status.isTransformed) {
+                hungerDrain = 5;
+            }
+
+            const currentHunger = state.player.hunger;
+            const nextHunger = Math.max(0, currentHunger - hungerDrain);
+
+            // Force Revert if starvation
+            let nextTransformed = state.status.isTransformed;
+            let tickLogs = [];
+
+            if (state.status.isTransformed && nextHunger === 0 && currentHunger > 0) {
+                nextTransformed = false;
+                tickLogs.push("A transformação cessa por exaustão.");
+            }
+
             return {
                 ...state,
-                resources: { ...state.resources, gold: state.resources.gold + (action.payload.gold || 0) },
+                player: {
+                    ...state.player,
+                    hp: tickHp,
+                    hunger: nextHunger
+                },
+                resources: { ...state.resources, gold: state.resources.gold + (action.payload.gold || 0) + minionGold },
+                outposts: outpostChanged ? newOutposts : state.outposts,
+                status: {
+                    ...state.status,
+                    isTransformed: nextTransformed,
+                    logs: tickLogs.length > 0 ? [...tickLogs, ...(state.status.logs || [])].slice(0, 50) : state.status.logs
+                }
+            };
+
+        case 'SYNC_DUO':
+            return {
+                ...state,
+                player: { ...state.player, duoState: action.payload }
+            };
+
+
+
+        case 'TOGGLE_TRANSFORMATION':
+            // Check Artifact
+            if (!state.inventory.some(i => i.id === 'cradle_of_greed')) return state;
+
+            const newForm = !state.status.isTransformed;
+            return {
+                ...state,
+                status: {
+                    ...state.status,
+                    isTransformed: newForm,
+                    logs: [newForm ? "O Abismo toma conta de seu corpo..." : "Você retorna à forma humana.", ...(state.status.logs || [])].slice(0, 50)
+                }
             };
 
         case 'ADD_LOG':
@@ -204,6 +349,67 @@ function gameReducer(state, action) {
                 ...state,
                 status: { ...state.status, currentEvent: action.payload }
             };
+
+        case 'PROCESS_INBOX': {
+            const msg = action.payload;
+            let inboxLogs = [];
+            let inboxHp = state.player.hp;
+            let inboxHunger = state.player.hunger;
+            let inboxVengeance = state.status.vengeance;
+
+            if (msg.type === 'HEAL') {
+                inboxHp = Math.min(state.player.maxHp, inboxHp + msg.amount);
+                inboxLogs.push(`Parceiro enviou ${msg.amount} HP!`);
+            }
+            if (msg.type === 'FEED') {
+                inboxHunger = Math.min(state.player.maxHunger, inboxHunger + msg.amount);
+                inboxLogs.push(`Parceiro enviou suprimentos! (+${msg.amount} fome)`);
+            }
+            if (msg.type === 'DIED') {
+                inboxVengeance = true;
+                inboxLogs.push("SEU PARCEIRO CAIU NO ABISMO. VINGANÇA ATIVADA!");
+            }
+
+            return {
+                ...state,
+                player: { ...state.player, hp: inboxHp, hunger: inboxHunger },
+                status: {
+                    ...state.status,
+                    vengeance: inboxVengeance,
+                    logs: [...inboxLogs, ...(state.status.logs || [])].slice(0, 50)
+                }
+            };
+        }
+
+        case 'LIFELINE_SEND': {
+            const { type: rType } = action.payload;
+            let costHp = 0;
+            let costHunger = 0;
+            let lineLogs = [];
+
+            if (rType === 'HP') {
+                if (state.player.hp <= 25) return { ...state, status: { ...state.status, logs: ["Vida muito baixa para transferir.", ...(state.status.logs || [])] } };
+                costHp = 25;
+                lineLogs.push("Você sacrificou 25 HP para curar seu parceiro.");
+            } else if (rType === 'RATION') {
+                if (state.player.hunger <= 20) return { ...state, status: { ...state.status, logs: ["Fome demais para compartilhar.", ...(state.status.logs || [])] } };
+                costHunger = 20;
+                lineLogs.push("Você enviou suprimentos.");
+            }
+
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    hp: state.player.hp - costHp,
+                    hunger: state.player.hunger - costHunger
+                },
+                status: {
+                    ...state.status,
+                    logs: [...lineLogs, ...(state.status.logs || [])].slice(0, 50)
+                }
+            };
+        }
 
         case 'CLEAR_EVENT':
             return {
@@ -333,6 +539,18 @@ function gameReducer(state, action) {
 
         case 'CRAFT_ITEM':
             const recipe = action.payload.recipe;
+
+            // Check Tool Requirement
+            if (recipe.tool) {
+                const hasTool = state.inventory.some(i => i.id === recipe.tool);
+                if (!hasTool) {
+                    return {
+                        ...state,
+                        status: { ...state.status, logs: [`Você precisa de: ${recipe.tool} para criar isso.`, ...(state.status.logs || [])].slice(0, 50) }
+                    };
+                }
+            }
+
             // Check resources (simplified validation, caller should check too)
             let currentInventory = [...state.inventory];
 
@@ -346,6 +564,44 @@ function gameReducer(state, action) {
                     }
                 }
             });
+
+            // Add result
+            currentInventory = addToStack(currentInventory, recipe.res, 1);
+            return { ...state, inventory: currentInventory };
+
+        case 'DEPLOY_OUTPOST':
+            // Snap to grid or just use current depth
+            const depthKey = Math.floor(state.player.depth);
+            // Check overlaps (simplified: exact match or strict 100m zone)
+            // Ideally: find any outpost within X meters.
+            const existingOutpost = Object.values(state.outposts || {}).find(o => Math.abs(o.depth - depthKey) < 200);
+
+            if (existingOutpost) {
+                return { ...state, status: { ...state.status, logs: ["Já existe um entreposto muito próximo.", ...(state.status.logs || [])] } };
+            }
+
+            // Consume Kit
+            const kitIdx = state.inventory.findIndex(i => i.id === 'outpost_kit');
+            if (kitIdx === -1) {
+                return { ...state, status: { ...state.status, logs: ["Necessário: Kit de Entreposto.", ...(state.status.logs || [])] } };
+            }
+
+            return {
+                ...state,
+                inventory: removeFromStack(state.inventory, kitIdx, 1),
+                outposts: {
+                    ...(state.outposts || {}),
+                    [depthKey]: {
+                        id: Date.now(),
+                        depth: depthKey,
+                        fuel: 0,
+                        storage: [],
+                        automaton: false,
+                        balloon: false
+                    }
+                },
+                status: { ...state.status, logs: [`Entreposto estabelecido em ${depthKey}m.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
 
             // Add result
             currentInventory = addToStack(currentInventory, recipe.res, 1);
@@ -365,6 +621,67 @@ function gameReducer(state, action) {
                 player: uPlayer,
                 status: { ...state.status, combatLog: [...(state.status.combatLog || []), `Usou ${uItem.name}.`] }
             };
+
+        case 'REFUEL_OUTPOST': {
+            const { depth, fuelType } = action.payload;
+            const op = { ...state.outposts[depth] };
+            if (!op) return state;
+
+            const fuelItem = fuelType === 'canister' ? 'fuel_canister' : 'scrap';
+            const fuelAmount = fuelType === 'canister' ? 100 : 10;
+            const itemIdx = state.inventory.findIndex(i => i.id === fuelItem);
+
+            if (itemIdx === -1) return { ...state, status: { ...state.status, logs: [`Sem ${fuelItem} para reabastecer.`, ...(state.status.logs || [])] } };
+
+            return {
+                ...state,
+                inventory: removeFromStack(state.inventory, itemIdx, 1),
+                outposts: {
+                    ...state.outposts,
+                    [depth]: { ...op, fuel: op.fuel + fuelAmount }
+                },
+                status: { ...state.status, logs: [`Entreposto reabastecido (+${fuelAmount}).`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+        }
+
+        case 'INSTALL_AUTOMATON': {
+            const { depth } = action.payload;
+            const op = { ...state.outposts[depth] };
+            const botIdx = state.inventory.findIndex(i => i.id === 'clockwork_automaton');
+
+            if (botIdx === -1) return state;
+
+            return {
+                ...state,
+                inventory: removeFromStack(state.inventory, botIdx, 1),
+                outposts: {
+                    ...state.outposts,
+                    [depth]: { ...op, automaton: true }
+                },
+                status: { ...state.status, logs: [`Autômato instalado no Entreposto.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+        }
+
+        case 'COLLECT_OUTPOST': {
+            const { depth } = action.payload;
+            const op = { ...state.outposts[depth] };
+            if (!op || !op.storage || op.storage.length === 0) return state;
+
+            let newInv = [...state.inventory];
+            op.storage.forEach(slot => {
+                newInv = addToStack(newInv, slot.id, slot.count);
+            });
+
+            return {
+                ...state,
+                inventory: newInv,
+                outposts: {
+                    ...state.outposts,
+                    [depth]: { ...op, storage: [] }
+                },
+                status: { ...state.status, logs: [`Coletou itens do Entreposto.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+        }
 
         case 'EQUIP_ITEM':
             const eItem = action.payload.item;
@@ -423,17 +740,22 @@ function gameReducer(state, action) {
                 const totalBonus = weaponAtk + charmAtk + (charmStr * 2) + baseStat; // 1 Str = 2 Atk value
 
                 // Base damage 5-15 + Bonuses
-                pDmg = Math.floor(Math.random() * 10) + 5 + totalBonus;
+                const transMult = state.status.isTransformed ? 2 : 1;
+                const vengMult = state.status.vengeance ? 2 : 1;
+                const totalMult = transMult * vengMult;
+
+                pDmg = Math.floor((Math.random() * 10 + 5 + totalBonus) * totalMult);
 
                 monsterHp -= pDmg;
-                log.push(`Você causou ${pDmg} de dano${totalBonus > 0 ? ` (+${totalBonus} bônus)` : ''}.`);
+                log.push(`Você causou ${pDmg} de dano${totalBonus > 0 ? ` (+${totalBonus} bônus)` : ''}${state.status.vengeance ? ' (VINGANÇA!)' : ''}.`);
             }
 
             if (monsterHp > 0) {
                 if (action.payload.action !== 'FLEE') {
-                    mDmg = Math.floor(Math.random() * monster.power * 0.5);
+                    const vengVuln = state.status.vengeance ? 2 : 1;
+                    mDmg = Math.floor(Math.random() * monster.power * 0.5 * vengVuln);
                     playerHp = Math.max(0, playerHp - mDmg);
-                    log.push(`${monster.name} atacou! -${mDmg} HP.`);
+                    log.push(`${monster.name} atacou! -${mDmg} HP${vengVuln > 1 ? ' (Vulnerável!)' : ''}.`);
                 }
             } else {
                 log.push(`${monster.name} foi derrotado!`);
@@ -505,6 +827,21 @@ function gameReducer(state, action) {
                 }
             };
 
+        case 'COMBAT_TAME_SUCCESS':
+            const tamed = action.payload;
+            const currentTamed = state.stats.tamedMonsters || [];
+            return {
+                ...state,
+                stats: { ...state.stats, tamedMonsters: [...currentTamed, tamed] },
+                status: {
+                    ...state.status,
+                    inCombat: false,
+                    currentMonster: null,
+                    currentEvent: null,
+                    logs: [`Você domou ${tamed.name}! Ele agora te ajuda passivamente.`, ...(state.status.logs || [])].slice(0, 50)
+                }
+            };
+
         case 'COMBAT_FLEE':
             const fleeCost = 20;
             const newHungerFlee = Math.max(0, state.player.hunger - fleeCost);
@@ -545,6 +882,9 @@ function gameReducer(state, action) {
                     logs: ["Você acordou na superfície. Sua mochila ficou para trás...", ...state.status.logs]
                 }
             };
+
+        case 'SET_DUO_ID':
+            return { ...state, player: { ...state.player, duoId: action.payload } };
 
         default:
             return state;

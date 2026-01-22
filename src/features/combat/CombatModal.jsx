@@ -25,14 +25,34 @@ export default function CombatModal() {
         }
     }, [currentMonster?.hp, dispatch]);
 
+    const hasBell = state.inventory.some(i => i.id === 'unheard_bell');
+    const hasCloak = state.inventory.some(i => i.id === 'phantom_cloak');
+
     const handleAttack = () => {
         dispatch({ type: 'COMBAT_ROUND', payload: { action: 'ATTACK' } });
     };
 
+    const handleTame = () => {
+        // Taming Logic: Chance increases as HP decreases
+        const hpPercent = currentMonster.hp / currentMonster.maxHp;
+        const tameChance = 1 - hpPercent; // 0.1 HP = 90% chance
+
+        if (Math.random() < tameChance) {
+            dispatch({ type: 'COMBAT_TAME_SUCCESS', payload: currentMonster });
+        } else {
+            dispatch({ type: 'ADD_LOG', payload: 'Falha ao domar! A criatura se enfurece.' });
+            dispatch({ type: 'COMBAT_ROUND', payload: { action: 'WAIT' } }); // Monster attacks free
+        }
+    };
+
     const handleFlee = () => {
-        if (Math.random() > 0.5) {
+        const baseChance = 0.5;
+        const bonus = hasCloak ? 0.2 : 0;
+
+        if (Math.random() < (baseChance + bonus)) {
             dispatch({ type: 'COMBAT_FLEE' });
         } else {
+            dispatch({ type: 'ADD_LOG', payload: 'Você tropeça ao tentar fugir!' });
             dispatch({ type: 'COMBAT_ROUND', payload: { action: 'WAIT' } });
         }
     };
@@ -85,18 +105,29 @@ export default function CombatModal() {
                 </div>
 
                 {/* Actions */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid ${hasBell ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
                     <button
                         onClick={handleAttack}
                         className="bg-red-800 hover:bg-red-700 text-white font-bold py-4 rounded border-b-4 border-red-950 active:border-b-0 active:translate-y-1 transition text-xl flex items-center justify-center gap-2"
                     >
                         <Sword /> ATACAR
                     </button>
+
+                    {hasBell && (
+                        <button
+                            onClick={handleTame}
+                            className="bg-indigo-700 hover:bg-indigo-600 text-white font-bold py-4 rounded border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 transition text-lg flex items-center justify-center gap-2"
+                            title="Chance baseada na Vida restantedo Inimigo"
+                        >
+                            DOMAR
+                        </button>
+                    )}
+
                     <button
                         onClick={handleFlee}
                         className="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-4 rounded border-b-4 border-slate-900 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2"
                     >
-                        <Footprints /> FUGIR
+                        <Footprints /> FUGIR {hasCloak && <span className="text-[10px] text-green-300">(+20%)</span>}
                     </button>
                 </div>
             </div>

@@ -112,6 +112,64 @@ export default function VisualPanel() {
                 </div>
             </div>
 
+            {/* Duo HUD (Haku / Bond) */}
+            {state.player.duoState && (
+                <div className={`absolute top-24 left-4 z-10 w-48 bg-black/40 backdrop-blur-md rounded border p-2 transition-all ${state.status.vengeance ? 'border-red-500 animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.5)]' : 'border-indigo-500/30'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${state.status.vengeance ? 'text-red-500' : 'text-indigo-300'}`}>
+                        {state.status.vengeance ? 'VINGANÇA ATIVA' : 'Parceiro'}
+                    </span>
+                    <div className="flex justify-between items-center text-xs text-white font-mono mb-1">
+                        <span>HP</span>
+                        <span className="text-rose-400">{Math.round(state.player.duoState.hp || 0)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden mb-2">
+                        <div className="bg-rose-500 h-full" style={{ width: `${state.player.duoState.hp || 0}%` }}></div>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-white font-mono mb-1">
+                        <span>Fome</span>
+                        <span className="text-amber-400">{Math.round(state.player.duoState.hunger || 0)}%</span>
+                    </div>
+                    <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden mb-2">
+                        <div className="bg-amber-500 h-full" style={{ width: `${state.player.duoState.hunger || 0}%` }}></div>
+                    </div>
+                    <div className="mt-1 text-center text-xs text-cyan-400 font-mono mb-2">
+                        Depth: {state.player.duoState.depth || 0}m
+                    </div>
+
+                    {/* Lifeline Actions */}
+                    <div className="grid grid-cols-2 gap-1 text-[9px]">
+                        <button
+                            onClick={() => {
+                                if (state.player.hp > 25) {
+                                    dispatch({ type: 'LIFELINE_SEND', payload: { type: 'HP' } });
+                                    if (sendToDuo) sendToDuo('HEAL', { amount: 20 });
+                                } else {
+                                    dispatch({ type: 'ADD_LOG', payload: "Vida muito baixa!" });
+                                }
+                            }}
+                            className="bg-rose-900/50 hover:bg-rose-800 border border-rose-800 text-rose-200 py-1 rounded transition"
+                            title="-25 HP (Você) -> +20 HP (Parceiro)"
+                        >
+                            Dar Vida
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (state.player.hunger > 20) {
+                                    dispatch({ type: 'LIFELINE_SEND', payload: { type: 'RATION' } });
+                                    if (sendToDuo) sendToDuo('FEED', { amount: 15 });
+                                } else {
+                                    dispatch({ type: 'ADD_LOG', payload: "Fome demais!" });
+                                }
+                            }}
+                            className="bg-amber-900/50 hover:bg-amber-800 border border-amber-800 text-amber-200 py-1 rounded transition"
+                            title="-20 Fome (Você) -> +15 Fome (Parceiro)"
+                        >
+                            Dar Ração
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Game Log (HUD) */}
             <RecentLogs />
 

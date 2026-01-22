@@ -84,15 +84,28 @@ export default function SocialPanel() {
 
             {/* Player List */}
             <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-900/30">
-                {players.map(p => (
-                    <div key={p.uid} className="bg-slate-800 p-2 rounded text-[10px] flex justify-between items-center border border-slate-700">
-                        <div>
-                            <span className="text-slate-200 font-bold">{p.name}</span>
-                            <span className="text-purple-400 ml-1">Lvl {p.level}</span>
+                {players.map(p => {
+                    // Check local proximity for Duo
+                    const isClose = Math.abs(p.depth - state.player.depth) < 300;
+                    return (
+                        <div key={p.uid} className="bg-slate-800 p-2 rounded text-[10px] flex justify-between items-center border border-slate-700">
+                            <div>
+                                <span className="text-slate-200 font-bold">{p.name}</span>
+                                <span className="text-purple-400 ml-1">Lvl {p.level}</span>
+                                {isClose && p.uid !== 'me' && (
+                                    <button
+                                        onClick={() => dispatch({ type: 'SET_DUO_ID', payload: p.uid })}
+                                        className="ml-2 bg-indigo-700 hover:bg-indigo-600 text-[8px] px-1 rounded text-white"
+                                        title="Solicitar Vínculo"
+                                    >
+                                        DUO
+                                    </button>
+                                )}
+                            </div>
+                            <span className={`font-mono ${isClose ? 'text-emerald-400 font-bold' : 'text-cyan-400'}`}>{p.depth}m</span>
                         </div>
-                        <span className="text-cyan-400 font-mono">{p.depth}m</span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Chat */}

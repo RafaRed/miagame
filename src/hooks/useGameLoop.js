@@ -26,9 +26,7 @@ export function useGameLoop() {
             }
 
             // Dispatch Tick
-            if (goldGain > 0) {
-                dispatch({ type: 'TICK_PASSIVE', payload: { gold: goldGain } });
-            }
+            dispatch({ type: 'TICK_PASSIVE', payload: { gold: goldGain } });
 
         }, 5000); // 5s loop for economy
 

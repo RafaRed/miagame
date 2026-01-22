@@ -56,13 +56,88 @@ export function useFirebase() {
             // Update Public Status (Position for Co-op)
             const statusRef = ref(db, `public/players/${user.uid}`);
             set(statusRef, {
+                uid: user.uid,
                 name: state.player.name,
                 depth: state.player.depth,
                 level: state.player.level,
+                hp: state.player.hp,
+                maxHp: state.player.maxHp,
+                hunger: state.player.hunger,
+                maxHunger: state.player.maxHunger,
                 lastSeen: serverTimestamp()
             });
         }
     }, [state, user]);
+
+    // Duo Listener (Haku System)
+    useEffect(() => {
+        if (state.player.duoId) {
+            const duoRef = ref(db, `public/players/${state.player.duoId}`);
+            const unsub = onValue(duoRef, (snap) => {
+                const data = snap.val();
+                if (data) {
+                    dispatch({
+                        type: 'SYNC_DUO',
+                        payload: {
+                            hp: (data.hp / data.maxHp) * 100,
+                            hunger: (data.hunger / data.maxHunger) * 100,
+                            depth: data.depth
+                        }
+                    });
+                }
+            });
+            return () => unsub();
+        }
+    }, [state.player.duoId, dispatch]);
+
+    // Inbox Listener (Lifeline Mechanics)
+    useEffect(() => {
+        if (!user) return;
+        const inboxRef = ref(db, `public/players/${user.uid}/inbox`);
+
+        // Listen for new child added
+        const unsub = onValue(inboxRef, (snap) => {
+            const data = snap.val();
+            if (data) {
+                Object.entries(data).forEach(([key, msg]) => {
+                    // Dispatch to GameContext
+                    dispatch({ type: 'PROCESS_INBOX', payload: msg });
+                    // Delete message after processing to prevent loops
+                    set(ref(db, `public/players/${user.uid}/inbox/${key}`), null);
+                });
+            }
+        });
+        return () => unsub();
+    }, [user, dispatch]);
+
+    // Send Death Signal
+    const [deathSent, setDeathSent] = useState(false);
+    useEffect(() => {
+        if (state.status.isDead && !deathSent && state.player.duoId) {
+            sendToDuo('DIED');
+            setDeathSent(true);
+        }
+        if (!state.status.isDead && deathSent) {
+            setDeathSent(false); // Reset on respawn
+        }
+    }, [state.status.isDead, state.player.duoId, deathSent]);
+
+    const sendToDuo = async (action, data = {}) => {
+        if (!state.player.duoId) return;
+        try {
+            // Push to partner's inbox
+            const inboxRef = ref(db, `public/players/${state.player.duoId}/inbox`);
+            // Use push to generate unique ID
+            await set(push(inboxRef), {
+                type: action,
+                sender: user.uid,
+                timestamp: serverTimestamp(),
+                ...data
+            });
+        } catch (e) {
+            console.error("Duo Send Error:", e);
+        }
+    };
 
     const loginWithGoogle = async () => {
         try {
@@ -74,5 +149,5 @@ export function useFirebase() {
 
     const logout = () => signOut(auth);
 
-    return { user, loading, loginWithGoogle, logout };
+    return { user, loading, loginWithGoogle, logout, sendToDuo };
 }
