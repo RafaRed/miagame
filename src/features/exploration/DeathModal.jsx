@@ -25,9 +25,13 @@ export default function DeathModal() {
                         <span>Profundidade Alcançada:</span>
                         <span className="text-red-400 font-mono">{state.player.depth}m</span>
                     </div>
-                    <div className="flex justify-between text-slate-300 text-sm">
+                    <div className="flex justify-between text-slate-300 text-sm mb-2">
                         <span>Ouro Perdido:</span>
                         <span className="text-red-400 font-mono">{Math.floor(state.resources.gold * 0.5)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-300 text-sm border-t border-red-900/30 pt-2 mt-2">
+                        <span>Itens na Mochila:</span>
+                        <span className="text-red-600 font-bold uppercase tracking-widest">PERDIDOS</span>
                     </div>
                 </div>
 

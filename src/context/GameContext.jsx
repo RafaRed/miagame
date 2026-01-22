@@ -330,13 +330,14 @@ function gameReducer(state, action) {
                     ...state.resources,
                     gold: Math.floor(state.resources.gold * 0.5) // 50% gold penalty
                 },
+                inventory: [], // Lose all backpack items
                 status: {
                     ...state.status,
                     isDead: false,
                     inCombat: false, // Force exit combat
                     currentMonster: null,
                     currentEvent: null,
-                    logs: ["Você acordou na superfície, ferido mas vivo.", ...state.status.logs]
+                    logs: ["Você acordou na superfície. Sua mochila ficou para trás...", ...state.status.logs]
                 }
             };
 

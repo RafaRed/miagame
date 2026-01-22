@@ -12,10 +12,18 @@ export default function SocialPanel() {
 
     // Listen to Players
     useEffect(() => {
-        const q = query(ref(db, 'public/players'), limitToLast(50));
+        // Query players active in the last 10 minutes presumably, but for now just list all in 'public/players'
+        // In a real app we'd filter by timestamp > now - 10min
+        const q = query(ref(db, 'public/players'), limitToLast(20));
         return onValue(q, (snap) => {
             const data = snap.val();
-            if (data) setPlayers(Object.entries(data).map(([uid, val]) => ({ uid, ...val })));
+            if (data) {
+                // Convert to array and sort by depth (descending - deeper first)
+                const arr = Object.entries(data)
+                    .map(([uid, val]) => ({ uid, ...val }))
+                    .sort((a, b) => b.depth - a.depth);
+                setPlayers(arr);
+            }
         });
     }, []);
 
@@ -31,9 +39,14 @@ export default function SocialPanel() {
     const sendChat = (e) => {
         e.preventDefault();
         if (!msg.trim()) return;
+
+        // Prevent spam/empty
+        const cleanMsg = msg.trim().slice(0, 100);
+
         push(ref(db, 'public/chat'), {
             sender: state.player.name,
-            text: msg,
+            text: cleanMsg,
+            depth: state.player.depth, // Show depth in chat
             timestamp: serverTimestamp()
         });
         setMsg('');
@@ -42,26 +55,20 @@ export default function SocialPanel() {
     const handleBeacon = () => {
         const cost = 500;
         if (state.resources.gold < cost) {
-            // dispatch({ type: 'ADD_LOG', payload: "Ouro insuficiente para sinalizador." }); // Need dispatch here, but context only exposes state?
-            // Ah, useGameState exposes dispatch.
-            // dispatch({ type: 'ADD_LOG', payload: "Ouro insuficiente." });
-            alert("Ouro insuficiente!"); // Simple alert for now as I don't want to wire dispatch just for log inside this component yet if not easy
+            dispatch({ type: 'ADD_LOG', payload: "Ouro insuficiente para sinalizador." });
             return;
         }
 
-        if (confirm(`Gastar ${cost} Orth para disparar um Sinalizador?`)) {
-            // Deduct Gold - we need dispatch for this. 
-            // Warning: SocialPanel needs dispatch from useGameState.
-            // Check line 8: const { state } = useGameState(); -> Need to destructure dispatch too.
-            // But I can't change line 8 easily here without seeing it. 
-            // I'll update the component to include dispatch.
+        if (window.confirm(`Gastar ${cost} Orth para disparar um Sinalizador?`)) {
+            dispatch({ type: 'ADD_GOLD', payload: -cost });
             push(ref(db, 'public/chat'), {
                 sender: "SISTEMA",
                 text: `SINALIZADOR: ${state.player.name} precisa de ajuda na camada ${state.player.depth}m!`,
+                depth: state.player.depth,
                 timestamp: serverTimestamp(),
                 isSystem: true
             });
-            dispatch({ type: 'ADD_GOLD', payload: -cost }); // We need to add ADD_GOLD to reducer handling negative? Yes it adds payload.
+            dispatch({ type: 'ADD_LOG', payload: "Sinalizador disparado!" });
         }
     };
 
@@ -90,12 +97,15 @@ export default function SocialPanel() {
 
             {/* Chat */}
             <div className="h-64 border-t border-slate-800 flex flex-col bg-slate-950">
-                <div className="flex-1 overflow-y-auto p-2 text-[10px] space-y-1.5 font-mono">
+                <div className="flex-1 overflow-y-auto p-2 text-[10px] space-y-2 font-mono" id="chat-box">
                     {chat.map((c, i) => (
-                        <div key={i} className="break-words">
-                            <span className={`font-bold ${c.isSystem ? 'text-yellow-400' : 'text-blue-400'}`}>{c.sender}:</span> <span className="text-slate-300">{c.text}</span>
+                        <div key={i} className={`break-words ${c.isSystem ? 'bg-yellow-900/10 p-1 rounded border border-yellow-900/30' : ''}`}>
+                            <span className="text-[9px] text-slate-500 mr-1">[{c.depth}m]</span>
+                            <span className={`font-bold ${c.isSystem ? 'text-yellow-400' : 'text-cyan-400'}`}>{c.sender}:</span>
+                            <span className={`text-slate-300 ml-1 ${c.isSystem ? 'text-yellow-100 italic' : ''}`}>{c.text}</span>
                         </div>
                     ))}
+                    <div ref={(el) => el?.scrollIntoView({ behavior: "smooth" })}></div>
                 </div>
                 <form onSubmit={sendChat} className="p-2 bg-slate-800 flex gap-1 border-t border-slate-700">
                     <input
