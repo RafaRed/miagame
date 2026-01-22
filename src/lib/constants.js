@@ -167,3 +167,11 @@ export const LAYERS = [
     { name: "Capital sem Retorno", min: 13001, max: 15500, img: layer5, curse: "Perda da Humanidade" },
     { name: "O Turbilhão Final", min: 15501, max: 99999, img: layer6, curse: "Morte Certa" },
 ];
+
+export const getWhistleRank = (depth) => {
+    if (depth < 1350) return { name: "Apito Vermelho", color: "bg-red-500", shadow: "shadow-red-500/50" };
+    if (depth < 2600) return { name: "Apito Azul", color: "bg-blue-600", shadow: "shadow-blue-600/50" };
+    if (depth < 7000) return { name: "Apito da Lua", color: "bg-purple-600", shadow: "shadow-purple-600/50" };
+    if (depth < 12000) return { name: "Apito Preto", color: "bg-slate-900", shadow: "shadow-black/50" };
+    return { name: "Apito Branco", color: "bg-white", shadow: "shadow-white/50" };
+};

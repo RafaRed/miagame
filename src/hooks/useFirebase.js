@@ -59,6 +59,8 @@ export function useFirebase() {
                 uid: user.uid,
                 name: state.player.name,
                 depth: state.player.depth,
+                maxDepth: state.player.maxDepth || 0,
+                gold: state.resources.gold || 0,
                 level: state.player.level,
                 hp: state.player.hp,
                 maxHp: state.player.maxHp,

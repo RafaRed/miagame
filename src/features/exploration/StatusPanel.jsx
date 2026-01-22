@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGameState } from '../../context/GameContext';
+import { LAYERS, getWhistleRank } from '../../lib/constants';
 import { ArrowDown, ArrowUp, Hammer, Store, Book, Skull } from 'lucide-react';
 import ShopPanel from '../tycoon/ShopPanel';
 import CraftingPanel from '../inventory/CraftingPanel';
@@ -58,15 +59,8 @@ export default function StatusPanel() {
     };
 
     // Whistle Logic
-    const getWhistleRank = (depth) => {
-        if (depth < 1350) return { name: "Apito Vermelho", color: "bg-red-500", shadow: "shadow-red-500/50" };
-        if (depth < 2600) return { name: "Apito Azul", color: "bg-blue-600", shadow: "shadow-blue-600/50" };
-        if (depth < 7000) return { name: "Apito da Lua", color: "bg-purple-600", shadow: "shadow-purple-600/50" };
-        if (depth < 12000) return { name: "Apito Preto", color: "bg-slate-900", shadow: "shadow-black/50" };
-        return { name: "Apito Branco", color: "bg-white", shadow: "shadow-white/50" };
-    };
-
-    const whistle = getWhistleRank(state.player.maxDepth); // Rank based on deepest achievement
+    // Whistle Logic - Imported from constants
+    const whistle = getWhistleRank(state.player.maxDepth);
 
     const handleDescend = () => {
         dispatch({ type: 'DESCEND', payload: { amount: 50, cost: 2 } }); // Double distance, reasonable cost
@@ -159,6 +153,81 @@ export default function StatusPanel() {
                     <div className="bg-slate-900 p-2 rounded text-center border border-slate-800">
                         <span className="block text-slate-500 text-[10px] uppercase">Orth</span>
                         <span className="font-bold text-relic-gold text-sm">{state.resources.gold}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Equipment Section */}
+            <div className="mb-4 bg-slate-800/30 p-3 rounded-lg border border-slate-700/50">
+                <h4 className="text-[10px] uppercase font-bold text-slate-500 mb-2">Equipamento</h4>
+                <div className="grid grid-cols-3 gap-2">
+                    {/* Weapon Slot */}
+                    <div className={`p-2 rounded border text-center relative group ${state.equipment.weapon ? 'bg-red-900/30 border-red-700/50' : 'bg-slate-900 border-slate-800'}`}>
+                        <span className="block text-[9px] uppercase text-slate-500 mb-1">Arma</span>
+                        {state.equipment.weapon ? (
+                            <div title={state.equipment.weapon.desc}>
+                                <span className={`text-xs font-bold ${state.equipment.weapon.color || 'text-slate-300'}`}>
+                                    {state.equipment.weapon.name}
+                                </span>
+                                <span className="block text-[9px] text-red-400">+{state.equipment.weapon.effect?.atk || 0} ATK</span>
+                                <button
+                                    onClick={() => dispatch({ type: 'UNEQUIP_ITEM', payload: { slot: 'weapon' } })}
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-slate-900/80 text-slate-400 hover:text-red-400 rounded px-1 text-[8px] transition"
+                                    title="Desequipar"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <span className="text-slate-600 text-xs">—</span>
+                        )}
+                    </div>
+
+                    {/* Body Slot */}
+                    <div className={`p-2 rounded border text-center relative group ${state.equipment.body ? 'bg-blue-900/30 border-blue-700/50' : 'bg-slate-900 border-slate-800'}`}>
+                        <span className="block text-[9px] uppercase text-slate-500 mb-1">Corpo</span>
+                        {state.equipment.body ? (
+                            <div title={state.equipment.body.desc}>
+                                <span className={`text-xs font-bold ${state.equipment.body.color || 'text-slate-300'}`}>
+                                    {state.equipment.body.name}
+                                </span>
+                                <span className="block text-[9px] text-blue-400">+{state.equipment.body.effect?.def || 0} DEF</span>
+                                <button
+                                    onClick={() => dispatch({ type: 'UNEQUIP_ITEM', payload: { slot: 'body' } })}
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-slate-900/80 text-slate-400 hover:text-red-400 rounded px-1 text-[8px] transition"
+                                    title="Desequipar"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <span className="text-slate-600 text-xs">—</span>
+                        )}
+                    </div>
+
+                    {/* Charm Slot */}
+                    <div className={`p-2 rounded border text-center relative group ${state.equipment.charm ? 'bg-purple-900/30 border-purple-700/50' : 'bg-slate-900 border-slate-800'}`}>
+                        <span className="block text-[9px] uppercase text-slate-500 mb-1">Amuleto</span>
+                        {state.equipment.charm ? (
+                            <div title={state.equipment.charm.desc}>
+                                <span className={`text-xs font-bold ${state.equipment.charm.color || 'text-slate-300'}`}>
+                                    {state.equipment.charm.name}
+                                </span>
+                                <span className="block text-[9px] text-purple-400">
+                                    {state.equipment.charm.effect?.def ? `+${state.equipment.charm.effect.def} DEF` :
+                                        state.equipment.charm.effect?.str ? `+${state.equipment.charm.effect.str} STR` : ''}
+                                </span>
+                                <button
+                                    onClick={() => dispatch({ type: 'UNEQUIP_ITEM', payload: { slot: 'charm' } })}
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-slate-900/80 text-slate-400 hover:text-red-400 rounded px-1 text-[8px] transition"
+                                    title="Desequipar"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <span className="text-slate-600 text-xs">—</span>
+                        )}
                     </div>
                 </div>
             </div>

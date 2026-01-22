@@ -740,6 +740,23 @@ function gameReducer(state, action) {
                 status: { ...state.status, logs: [`Equipou ${eItem.name}.`, ...(state.status.logs || [])].slice(0, 50) }
             };
 
+        case 'UNEQUIP_ITEM': {
+            const slotToUnequip = action.payload.slot; // 'weapon' | 'body' | 'charm'
+            const itemToUnequip = state.equipment[slotToUnequip];
+
+            if (!itemToUnequip) return state;
+
+            return {
+                ...state,
+                inventory: addToStack(state.inventory, itemToUnequip.id, 1),
+                equipment: {
+                    ...state.equipment,
+                    [slotToUnequip]: null
+                },
+                status: { ...state.status, logs: [`Desequipou ${itemToUnequip.name}.`, ...(state.status.logs || [])].slice(0, 50) }
+            };
+        }
+
 
 
         case 'USE_ITEM':

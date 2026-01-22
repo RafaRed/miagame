@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { db } from '../../lib/firebase';
 import { ref, onValue, push, serverTimestamp, limitToLast, query } from 'firebase/database';
 import { useGameState } from '../../context/GameContext';
-import { MessageSquare, Users, Radio } from 'lucide-react';
+import { MessageSquare, Users, Radio, Trophy } from 'lucide-react';
+import LeaderboardModal from './LeaderboardModal';
 
 export default function SocialPanel() {
     const { state, dispatch } = useGameState();
     const [players, setPlayers] = useState([]);
     const [chat, setChat] = useState([]);
     const [msg, setMsg] = useState('');
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
 
     // Listen to Players
     useEffect(() => {
@@ -87,6 +89,13 @@ export default function SocialPanel() {
                 <span className="text-green-500 animate-pulse text-[10px] flex items-center gap-1">
                     <Radio size={10} /> Online
                 </span>
+                <button
+                    onClick={() => setShowLeaderboard(true)}
+                    className="ml-2 bg-yellow-900/40 text-yellow-500 border border-yellow-700/50 rounded px-2 py-0.5 hover:bg-yellow-900/60 transition flex items-center gap-1"
+                    title="Ranking de Profundidade"
+                >
+                    <Trophy size={10} />
+                </button>
             </div>
 
             {/* Player List */}
@@ -150,6 +159,7 @@ export default function SocialPanel() {
                 </button>
                 <p className="text-[10px] text-center text-slate-500 mt-2">Custo: 500 Orth. Alerta jogadores globais.</p>
             </div>
+            {showLeaderboard && <LeaderboardModal onClose={() => setShowLeaderboard(false)} />}
         </div>
     );
 }
