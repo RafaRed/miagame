@@ -578,24 +578,28 @@ function gameReducer(state, action) {
             // Remove 1 dirty relic
             const afterAppraiseInv = removeFromStack(state.inventory, appIndex, 1);
 
-            // Roll for result (simplified copy of logic to avoid massive diff)
+            // Roll for result - using only valid item IDs from ITEMS constant
             const roll = Math.random();
             let resultId = 'stone';
             if (roll > 0.99) resultId = 'reg_arm';
             else if (roll > 0.95) {
-                const legendary = ['white_whistle', 'abyss_map', 'sun_sphere', 'blaze_reap'];
+                // Legendary: Grade 1 items
+                const legendary = ['white_whistle', 'abyss_map', 'soul_stone', 'blaze_reap'];
                 resultId = legendary[Math.floor(Math.random() * legendary.length)];
             }
             else if (roll > 0.80) {
-                const rare = ['thousand_men_wedge', 'life_stone', 'star_compass'];
+                // Rare: Grade 2 items
+                const rare = ['thousand_men_wedge', 'star_compass', 'guardian_charm', 'vampire_tooth'];
                 resultId = rare[Math.floor(Math.random() * rare.length)];
             }
             else if (roll > 0.50) {
-                const uncommon = ['star_compass_broken', 'fog_weave', 'relic_fragment'];
+                // Uncommon: Grade 3 items
+                const uncommon = ['ancient_coin', 'flame_shell', 'relic_fragment', 'luminous_moss'];
                 resultId = uncommon[Math.floor(Math.random() * uncommon.length)];
             }
             else {
-                const common = ['eternal_torch', 'hollow_vessel', 'stone', 'scrap'];
+                // Common: Grade 4 items and materials
+                const common = ['bent_spoon', 'broken_whistle', 'stone', 'scrap', 'rusted_gear'];
                 resultId = common[Math.floor(Math.random() * common.length)];
             }
 
