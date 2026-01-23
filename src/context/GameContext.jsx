@@ -276,21 +276,38 @@ function gameReducer(state, action) {
                 hungerReduction = 0.3;
             }
 
-            // Outpost Mining Logic
+            let newGold = state.resources.gold + (action.payload.gold || 0) + minionGold;
+
+            // Outpost Automation Logic
             let newOutposts = { ...(state.outposts || {}) };
-            let outpostChanged = false;
+            let hasOpUpdates = false;
+
             Object.keys(newOutposts).forEach(key => {
                 const op = { ...newOutposts[key] };
                 if (op.automaton && op.fuel > 0) {
-                    op.fuel = Math.max(0, op.fuel - 1);
-                    // 20% chance to find loot
+                    op.fuel -= 1;
+
+                    // Production (Simple chance based)
+                    // 20% chance to find something per tick (5s) => ~2.4 items/min
                     if (Math.random() < 0.2) {
-                        const lootOpts = ['stone', 'scrap', 'monster_bone', 'abyss_dust'];
-                        const lootId = lootOpts[Math.floor(Math.random() * lootOpts.length)];
-                        op.storage = addToStack(op.storage || [], lootId, 1);
+                        const roll = Math.random();
+                        let itemId = 'stone';
+                        if (roll > 0.95) itemId = 'relic_fragment'; // 5%
+                        else if (roll > 0.70) itemId = 'abyss_dust'; // 25%
+                        else if (roll > 0.40) itemId = 'scrap'; // 30%
+                        // else stone (40%)
+
+                        // Add to storage
+                        // Simple helper logic inline since addToStack is pure but we need to pass the specific array
+                        const existIdx = op.storage.findIndex(i => i.id === itemId);
+                        if (existIdx > -1) {
+                            op.storage[existIdx].count += 1;
+                        } else {
+                            op.storage.push({ id: itemId, count: 1 });
+                        }
                     }
                     newOutposts[key] = op;
-                    outpostChanged = true;
+                    hasOpUpdates = true;
                 }
             });
 
@@ -321,8 +338,8 @@ function gameReducer(state, action) {
                     hp: tickHp,
                     hunger: nextHunger
                 },
-                resources: { ...state.resources, gold: state.resources.gold + (action.payload.gold || 0) + minionGold },
-                outposts: outpostChanged ? newOutposts : state.outposts,
+                resources: { ...state.resources, gold: newGold },
+                outposts: hasOpUpdates ? newOutposts : state.outposts,
                 status: {
                     ...state.status,
                     isTransformed: nextTransformed,
@@ -647,21 +664,21 @@ function gameReducer(state, action) {
             currentInventory = addToStack(currentInventory, recipe.res, 1);
             return { ...state, inventory: currentInventory };
 
-        case 'DEPLOY_OUTPOST':
-            // Snap to grid or just use current depth
-            const depthKey = Math.floor(state.player.depth);
-            // Check overlaps (simplified: exact match or strict 100m zone)
-            // Ideally: find any outpost within X meters.
-            const existingOutpost = Object.values(state.outposts || {}).find(o => Math.abs(o.depth - depthKey) < 200);
 
+
+        // --- OUTPOST SYSTEM ---
+        case 'DEPLOY_OUTPOST': {
+            const depthKey = Math.floor(state.player.depth);
+            // Check Collision
+            const existingOutpost = Object.values(state.outposts || {}).find(o => Math.abs(o.depth - depthKey) < 200);
             if (existingOutpost) {
-                return { ...state, status: { ...state.status, logs: ["Já existe um entreposto muito próximo.", ...(state.status.logs || [])] } };
+                return { ...state, status: { ...state.status, logs: ["Já existe um entreposto muito próximo.", ...(state.status.logs || [])].slice(0, 50) } };
             }
 
-            // Consume Kit
+            // Check Kit
             const kitIdx = state.inventory.findIndex(i => i.id === 'outpost_kit');
             if (kitIdx === -1) {
-                return { ...state, status: { ...state.status, logs: ["Necessário: Kit de Entreposto.", ...(state.status.logs || [])] } };
+                return { ...state, status: { ...state.status, logs: ["Você precisa de um Kit de Entreposto.", ...(state.status.logs || [])].slice(0, 50) } };
             }
 
             return {
@@ -675,17 +692,13 @@ function gameReducer(state, action) {
                         fuel: 0,
                         storage: [],
                         automaton: false,
-                        balloon: false
+                        balloon: false,
+                        lastTick: Date.now()
                     }
                 },
                 status: { ...state.status, logs: [`Entreposto estabelecido em ${depthKey}m.`, ...(state.status.logs || [])].slice(0, 50) }
             };
-
-            // Add result
-            currentInventory = addToStack(currentInventory, recipe.res, 1);
-            return { ...state, inventory: currentInventory };
-
-
+        }
 
         case 'REFUEL_OUTPOST': {
             const { depth, fuelType } = action.payload;
@@ -696,7 +709,7 @@ function gameReducer(state, action) {
             const fuelAmount = fuelType === 'canister' ? 100 : 10;
             const itemIdx = state.inventory.findIndex(i => i.id === fuelItem);
 
-            if (itemIdx === -1) return { ...state, status: { ...state.status, logs: [`Sem ${fuelItem} para reabastecer.`, ...(state.status.logs || [])] } };
+            if (itemIdx === -1) return { ...state, status: { ...state.status, logs: [`Sem ${fuelItem} para reabastecer.`, ...(state.status.logs || [])].slice(0, 50) } };
 
             return {
                 ...state,
@@ -714,7 +727,7 @@ function gameReducer(state, action) {
             const op = { ...state.outposts[depth] };
             const botIdx = state.inventory.findIndex(i => i.id === 'clockwork_automaton');
 
-            if (botIdx === -1) return state;
+            if (botIdx === -1) return { ...state, status: { ...state.status, logs: ["Autômato necessário.", ...(state.status.logs || [])].slice(0, 50) } };
 
             return {
                 ...state,
@@ -723,14 +736,14 @@ function gameReducer(state, action) {
                     ...state.outposts,
                     [depth]: { ...op, automaton: true }
                 },
-                status: { ...state.status, logs: [`Autômato instalado no Entreposto.`, ...(state.status.logs || [])].slice(0, 50) }
+                status: { ...state.status, logs: [`Autômato instalado.`, ...(state.status.logs || [])].slice(0, 50) }
             };
         }
 
         case 'COLLECT_OUTPOST': {
             const { depth } = action.payload;
             const op = { ...state.outposts[depth] };
-            if (!op || !op.storage || op.storage.length === 0) return state;
+            if (!op || !op.storage || op.storage.length === 0) return { ...state, status: { ...state.status, logs: ["Nada para coletar.", ...(state.status.logs || [])].slice(0, 50) } };
 
             let newInv = [...state.inventory];
             op.storage.forEach(slot => {

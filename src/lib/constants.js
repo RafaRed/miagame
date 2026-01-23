@@ -93,6 +93,7 @@ export const ITEMS = [
     { id: 'transmission_coil', name: 'Bobina de Transmissão', type: 'artifact', price: 4000, icon: 'wifi', color: 'text-purple-400', desc: "Envia itens do entreposto para a superfície.", rarity: 1 },
     { id: 'cradle_of_greed', name: 'Berço da Ganância', type: 'artifact', price: 12000, icon: 'skull', color: 'text-red-600', desc: "Permite Manifestação (Transformação). Perigoso.", rarity: 0 },
     { id: 'deep_eyes', name: 'Olhos da Profundeza', type: 'artifact', price: 6000, effect: { scout: true }, icon: 'eye', color: 'text-purple-500', desc: "Permite ver perigos antes de agir.", rarity: 1 },
+    { id: 'cartridge', name: 'Cartucho', type: 'consumable', price: 20000, effect: { curseImmunity: true }, icon: 'battery', color: 'text-pink-600', desc: "Proteção contra a maldição... feita de vida.", rarity: 1 },
 ];
 
 export const MONSTERS = [
