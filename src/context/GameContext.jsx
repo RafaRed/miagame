@@ -83,6 +83,24 @@ const removeFromStack = (inv, index, qty = 1) => {
 // Reducer
 function gameReducer(state, action) {
     switch (action.type) {
+        case 'LOAD_SAVE': {
+            const data = action.payload;
+            return {
+                ...state,
+                player: data.player || state.player,
+                resources: data.resources || state.resources,
+                machines: data.machines || state.machines,
+                stats: data.stats || state.stats,
+                inventory: data.inventory || state.inventory,
+                equipment: data.equipment || state.equipment,
+                outposts: data.outposts || state.outposts,
+                status: {
+                    ...state.status,
+                    logs: ["Progresso restaurado do servidor.", ...(state.status.logs || [])].slice(0, 50)
+                }
+            };
+        }
+
         case 'SET_NAME':
             return { ...state, player: { ...state.player, name: action.payload } };
 
@@ -312,11 +330,21 @@ function gameReducer(state, action) {
                 }
             };
 
-        case 'SYNC_DUO':
+        case 'SYNC_DUO': {
+            const duoData = action.payload;
+            // Sanitize NaN values
             return {
                 ...state,
-                player: { ...state.player, duoState: action.payload }
+                player: {
+                    ...state.player,
+                    duoState: {
+                        hp: isNaN(duoData.hp) ? 0 : duoData.hp,
+                        hunger: isNaN(duoData.hunger) ? 0 : duoData.hunger,
+                        depth: duoData.depth || 0
+                    }
+                }
             };
+        }
 
 
 

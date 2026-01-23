@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { auth, db } from '../lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { googleProvider } from '../lib/firebase';
-import { ref, set, onValue, serverTimestamp, onDisconnect, push } from "firebase/database";
+import { ref, set, get, onValue, serverTimestamp, onDisconnect, push } from "firebase/database";
 import { useGameState } from '../context/GameContext';
 
 export function useFirebase() {
@@ -10,11 +10,25 @@ export function useFirebase() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Auth only - no presence on every state change
+    // Auth and Load from Firebase
     useEffect(() => {
-        const unsub = onAuthStateChanged(auth, (u) => {
+        const unsub = onAuthStateChanged(auth, async (u) => {
             if (u) {
                 setUser(u);
+
+                // Load save from Firebase
+                try {
+                    const saveRef = ref(db, `players/${u.uid}/save`);
+                    const snap = await get(saveRef);
+                    if (snap.exists()) {
+                        const data = snap.val();
+                        dispatch({ type: 'LOAD_SAVE', payload: data });
+                        console.log("Save loaded from Firebase");
+                    }
+                } catch (e) {
+                    console.error("Error loading save:", e);
+                }
+
                 setLoading(false);
 
                 // Set presence ONCE on login
@@ -30,10 +44,10 @@ export function useFirebase() {
             }
         });
         return () => unsub();
-    }, []); // No dependencies - only runs once
+    }, [dispatch]); // Added dispatch dependency
 
     // Throttled Sync - INTERVAL BASED, not state-based
-    const SYNC_INTERVAL = 60000; // 60 seconds
+    const SYNC_INTERVAL = 15000; // 15 seconds
     const intervalRef = useRef(null);
     const stateRef = useRef(state);
 
@@ -62,7 +76,7 @@ export function useFirebase() {
                 outposts: currentState.outposts || {}
             });
 
-            // Update Public Status (minimal data)
+            // Update Public Status (includes HP/Hunger for Duo sync)
             const statusRef = ref(db, `public/players/${user.uid}`);
             set(statusRef, {
                 uid: user.uid,
@@ -70,20 +84,45 @@ export function useFirebase() {
                 depth: currentState.player.depth,
                 maxDepth: currentState.player.maxDepth || 0,
                 gold: currentState.resources.gold || 0,
-                level: currentState.player.level
+                level: currentState.player.level,
+                hp: currentState.player.hp,
+                maxHp: currentState.player.maxHp,
+                hunger: currentState.player.hunger,
+                maxHunger: currentState.player.maxHunger
             });
         };
 
         // Sync immediately on login
         syncToFirebase();
 
-        // Then sync every 60 seconds
+        // Then sync every 15 seconds
         intervalRef.current = setInterval(syncToFirebase, SYNC_INTERVAL);
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, [user]); // Only depends on user, not state
+
+    // Also sync when depth changes significantly (every 100m)
+    const lastDepthSync = useRef(0);
+    useEffect(() => {
+        if (!user) return;
+        const currentDepth = state.player.depth;
+        if (Math.abs(currentDepth - lastDepthSync.current) >= 100) {
+            lastDepthSync.current = currentDepth;
+            // Trigger immediate sync
+            const saveRef = ref(db, `players/${user.uid}/save`);
+            set(saveRef, {
+                player: stateRef.current.player,
+                resources: stateRef.current.resources,
+                machines: stateRef.current.machines,
+                stats: stateRef.current.stats,
+                inventory: stateRef.current.inventory,
+                equipment: stateRef.current.equipment,
+                outposts: stateRef.current.outposts || {}
+            });
+        }
+    }, [state.player.depth, user]);
 
     // Save on page unload (beforeunload)
     useEffect(() => {
