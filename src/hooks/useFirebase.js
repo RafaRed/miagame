@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { auth, db } from '../lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { googleProvider } from '../lib/firebase';
@@ -10,26 +10,19 @@ export function useFirebase() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Auth & Presence
+    // Auth only - no presence on every state change
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
             if (u) {
                 setUser(u);
                 setLoading(false);
-                // Presence System
-                const userStatusRef = ref(db, `/status/${u.uid}`);
-                const connectedRef = ref(db, '.info/connected');
 
-                onValue(connectedRef, (snap) => {
-                    if (snap.val() === true) {
-                        onDisconnect(userStatusRef).remove();
-                        set(userStatusRef, {
-                            name: state.player.name,
-                            depth: state.player.depth,
-                            lastSeen: serverTimestamp(),
-                            state: 'online'
-                        });
-                    }
+                // Set presence ONCE on login
+                const userStatusRef = ref(db, `/status/${u.uid}`);
+                onDisconnect(userStatusRef).remove();
+                set(userStatusRef, {
+                    state: 'online',
+                    lastSeen: serverTimestamp()
                 });
             } else {
                 setUser(null);
@@ -37,74 +30,114 @@ export function useFirebase() {
             }
         });
         return () => unsub();
-    }, [state.player.name, state.player.depth]);
+    }, []); // No dependencies - only runs once
 
-    // Sync / Save & Public Status
+    // Throttled Sync - INTERVAL BASED, not state-based
+    const SYNC_INTERVAL = 60000; // 60 seconds
+    const intervalRef = useRef(null);
+    const stateRef = useRef(state);
+
+    // Keep stateRef updated
     useEffect(() => {
-        if (user && state.player) {
+        stateRef.current = state;
+    }, [state]);
+
+    // Single interval for syncing
+    useEffect(() => {
+        if (!user) return;
+
+        const syncToFirebase = () => {
+            const currentState = stateRef.current;
+            if (!currentState.player) return;
+
             // Save game state
             const saveRef = ref(db, `players/${user.uid}/save`);
             set(saveRef, {
-                player: state.player,
-                resources: state.resources,
-                machines: state.machines,
-                stats: state.stats,
-                inventory: state.inventory,
-                timestamp: serverTimestamp()
+                player: currentState.player,
+                resources: currentState.resources,
+                machines: currentState.machines,
+                stats: currentState.stats,
+                inventory: currentState.inventory,
+                equipment: currentState.equipment,
+                outposts: currentState.outposts || {}
             });
 
-            // Update Public Status (Position for Co-op)
+            // Update Public Status (minimal data)
             const statusRef = ref(db, `public/players/${user.uid}`);
             set(statusRef, {
                 uid: user.uid,
-                name: state.player.name,
-                depth: state.player.depth,
-                maxDepth: state.player.maxDepth || 0,
-                gold: state.resources.gold || 0,
-                level: state.player.level,
-                hp: state.player.hp,
-                maxHp: state.player.maxHp,
-                hunger: state.player.hunger,
-                maxHunger: state.player.maxHunger,
-                lastSeen: serverTimestamp()
+                name: currentState.player.name,
+                depth: currentState.player.depth,
+                maxDepth: currentState.player.maxDepth || 0,
+                gold: currentState.resources.gold || 0,
+                level: currentState.player.level
             });
-        }
-    }, [state, user]);
+        };
 
-    // Duo Listener (Haku System)
+        // Sync immediately on login
+        syncToFirebase();
+
+        // Then sync every 60 seconds
+        intervalRef.current = setInterval(syncToFirebase, SYNC_INTERVAL);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [user]); // Only depends on user, not state
+
+    // Save on page unload (beforeunload)
     useEffect(() => {
-        if (state.player.duoId) {
-            const duoRef = ref(db, `public/players/${state.player.duoId}`);
-            const unsub = onValue(duoRef, (snap) => {
-                const data = snap.val();
-                if (data) {
-                    dispatch({
-                        type: 'SYNC_DUO',
-                        payload: {
-                            hp: (data.hp / data.maxHp) * 100,
-                            hunger: (data.hunger / data.maxHunger) * 100,
-                            depth: data.depth
-                        }
-                    });
-                }
-            });
-            return () => unsub();
-        }
+        const handleUnload = () => {
+            if (user && stateRef.current.player) {
+                const saveRef = ref(db, `players/${user.uid}/save`);
+                // Using navigator.sendBeacon would be better but set works for now
+                set(saveRef, {
+                    player: stateRef.current.player,
+                    resources: stateRef.current.resources,
+                    machines: stateRef.current.machines,
+                    stats: stateRef.current.stats,
+                    inventory: stateRef.current.inventory,
+                    equipment: stateRef.current.equipment,
+                    outposts: stateRef.current.outposts || {}
+                });
+            }
+        };
+
+        window.addEventListener('beforeunload', handleUnload);
+        return () => window.removeEventListener('beforeunload', handleUnload);
+    }, [user]);
+
+    // Duo Listener - only when duo is active
+    useEffect(() => {
+        if (!state.player.duoId) return;
+
+        const duoRef = ref(db, `public/players/${state.player.duoId}`);
+        const unsub = onValue(duoRef, (snap) => {
+            const data = snap.val();
+            if (data) {
+                dispatch({
+                    type: 'SYNC_DUO',
+                    payload: {
+                        hp: (data.hp / data.maxHp) * 100,
+                        hunger: (data.hunger / data.maxHunger) * 100,
+                        depth: data.depth
+                    }
+                });
+            }
+        });
+        return () => unsub();
     }, [state.player.duoId, dispatch]);
 
-    // Inbox Listener (Lifeline Mechanics)
+    // Inbox Listener
     useEffect(() => {
         if (!user) return;
         const inboxRef = ref(db, `public/players/${user.uid}/inbox`);
 
-        // Listen for new child added
         const unsub = onValue(inboxRef, (snap) => {
             const data = snap.val();
             if (data) {
                 Object.entries(data).forEach(([key, msg]) => {
-                    // Dispatch to GameContext
                     dispatch({ type: 'PROCESS_INBOX', payload: msg });
-                    // Delete message after processing to prevent loops
                     set(ref(db, `public/players/${user.uid}/inbox/${key}`), null);
                 });
             }
@@ -120,20 +153,17 @@ export function useFirebase() {
             setDeathSent(true);
         }
         if (!state.status.isDead && deathSent) {
-            setDeathSent(false); // Reset on respawn
+            setDeathSent(false);
         }
     }, [state.status.isDead, state.player.duoId, deathSent]);
 
     const sendToDuo = async (action, data = {}) => {
-        if (!state.player.duoId) return;
+        if (!state.player.duoId || !user) return;
         try {
-            // Push to partner's inbox
             const inboxRef = ref(db, `public/players/${state.player.duoId}/inbox`);
-            // Use push to generate unique ID
             await set(push(inboxRef), {
                 type: action,
                 sender: user.uid,
-                timestamp: serverTimestamp(),
                 ...data
             });
         } catch (e) {
@@ -158,31 +188,21 @@ export function useFirebase() {
             sellerId: user.uid,
             sellerName: state.player.name,
             item: item,
-            price: price,
-            timestamp: serverTimestamp()
+            price: price
         });
     };
 
     const buyMarketItem = async (listingId, listing) => {
         if (!user) return;
-        // 1. Remove Listing (First come first serve)
-        // Using a transaction would be better but simple set(null) is okay for prototype
         try {
             await set(ref(db, `public/market/${listingId}`), null);
-
-            // 2. Send Geld to Seller Inbox
             const inboxRef = ref(db, `public/players/${listing.sellerId}/inbox`);
             await set(push(inboxRef), {
                 type: 'MARKET_SALE',
                 item: listing.item,
                 price: listing.price,
-                buyer: state.player.name,
-                timestamp: serverTimestamp()
+                buyer: state.player.name
             });
-
-            // 3. Dispatch local BUY (Must be handled by caller or here?)
-            // Caller (UI) handles local state (deduct gold, add item)
-            // But we should confirm success first.
             return true;
         } catch (e) {
             console.error("Buy Error:", e);

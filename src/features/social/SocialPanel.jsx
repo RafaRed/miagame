@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { db } from '../../lib/firebase';
 import { ref, onValue, push, serverTimestamp, limitToLast, query } from 'firebase/database';
 import { useGameState } from '../../context/GameContext';
@@ -12,10 +12,13 @@ export default function SocialPanel() {
     const [msg, setMsg] = useState('');
     const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-    // Listen to Players
+    const stateRef = useRef(state);
+    useEffect(() => { stateRef.current = state; }, [state]);
+
+    // Listen to Players - single subscription, no re-subscribe
     useEffect(() => {
         const q = query(ref(db, 'public/players'), limitToLast(20));
-        return onValue(q, (snap) => {
+        const unsub = onValue(q, (snap) => {
             const data = snap.val();
             if (data) {
                 const arr = Object.entries(data)
@@ -23,18 +26,17 @@ export default function SocialPanel() {
                     .sort((a, b) => b.depth - a.depth);
                 setPlayers(arr);
 
-                // Calculate Resonance (Players within 200m)
-                // Exclude self from "other players" count? No, logic says "3+ active players including self" usually means 2 others.
-                // Let's count *others* nearby.
-                const myDepth = state.player.depth;
-                const nearbyCount = arr.filter(p => Math.abs(p.depth - myDepth) < 200 && p.uid !== state.player.duoId && p.name !== state.player.name).length; // Rudimentary UID check by name? ideally by Auth UID but `state.player` doesn't have it explicitly stored in GameContext maybe.
-                // Wait, useFirebase.js has `user.uid`. GameContext doesn't know my UID easily unless we store it.
-                // Assuming we filter out based on some logic. For 'nearby', just counting is robust enough for prototype.
-
+                // Calculate Resonance using ref
+                const myDepth = stateRef.current.player.depth;
+                const myName = stateRef.current.player.name;
+                const nearbyCount = arr.filter(p =>
+                    Math.abs(p.depth - myDepth) < 200 && p.name !== myName
+                ).length;
                 dispatch({ type: 'UPDATE_RESONANCE', payload: nearbyCount });
             }
         });
-    }, [state.player.depth, dispatch]);
+        return () => unsub();
+    }, [dispatch]); // Only dispatch dependency
 
     // Listen to Chat
     useEffect(() => {

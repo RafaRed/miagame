@@ -1,25 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../lib/firebase';
-import { ref, onValue, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, get, query, limitToLast } from 'firebase/database';
 import { Trophy, Coins, ArrowDown } from 'lucide-react';
 import { getWhistleRank } from '../../lib/constants';
 
 export default function LeaderboardModal({ onClose }) {
     const [players, setPlayers] = useState([]);
     const [sortBy, setSortBy] = useState('maxDepth'); // maxDepth | gold
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const q = query(ref(db, 'public/players'), limitToLast(50));
-        return onValue(q, (snap) => {
-            const data = snap.val();
-            if (data) {
-                const arr = Object.entries(data)
-                    .map(([uid, val]) => ({ uid, ...val }))
-                    .sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0))
-                    .slice(0, 10);
-                setPlayers(arr);
+        const fetchPlayers = async () => {
+            setLoading(true);
+            try {
+                const q = query(ref(db, 'public/players'), limitToLast(50));
+                const snap = await get(q);
+                const data = snap.val();
+                if (data) {
+                    const arr = Object.entries(data)
+                        .map(([uid, val]) => ({ uid, ...val }))
+                        .sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0))
+                        .slice(0, 10);
+                    setPlayers(arr);
+                }
+            } catch (e) {
+                console.error("Leaderboard fetch error:", e);
             }
-        });
+            setLoading(false);
+        };
+        fetchPlayers();
     }, [sortBy]);
 
     return (
